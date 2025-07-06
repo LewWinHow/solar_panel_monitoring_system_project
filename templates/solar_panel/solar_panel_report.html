@@ -1,0 +1,63 @@
+{% extends "navigation_bar.html" %}
+
+{% block content %}
+<title>Solar Panel Report</title>
+<h2 class="mb-4">Solar Panel Report</h2>
+
+<div class="report-list">
+
+    <!-- Superuser 才显示 generate button -->
+    {% if permission == 1 %}
+    <form method="post" action="{% url 'solar_panel:solar_panel_report' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary mb-3">📊 Generate Monthly Report</button>
+    </form>
+    {% endif %}
+
+    <table class="table table-bordered table-hover align-middle text-center">
+        <thead class="table-secondary">
+        <tr>
+            <th>ID</th>
+            <th>Month</th>
+            <th>Year</th>
+            <th>Generated Time</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody class="table-light">
+        {% for report in reports %}
+        <tr>
+            <td>{{ report.id }}</td>
+            <td>{{ report.month }}</td>
+            <td>{{ report.year }}</td>
+            <td>{{ report.generated_time }}</td>
+            <td>
+                <a href="{% url 'solar_panel:view_report_pdf' report.id %}"
+                   class="btn btn-sm btn-success" target="_blank">
+                   📄 View PDF
+                </a>
+                <a href="{% url 'solar_panel:view_report_pdf' report.id %}?download=1"
+                   class="btn btn-sm btn-primary ms-1">
+                   ⬇️ Download
+                </a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" class="text-center">No Data</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- 消息显示 -->
+    {% if messages %}
+    <ul class="mt-3">
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+</div>
+{% endblock %}

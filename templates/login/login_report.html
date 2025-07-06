@@ -1,0 +1,58 @@
+{% extends "navigation_bar.html" %}
+{% block content %}
+<title>Login Report</title>
+<h2 class="mb-4">Login Report</h2>
+
+<div class="login-report">
+
+    <!-- 超级用户显示 Generate 按钮 -->
+    {% if permission == 1 %}
+    <form method="post" action="{% url 'login:login_report' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary mb-3">📊 Generate Monthly Login Report</button>
+    </form>
+    {% endif %}
+
+    <table class="table table-bordered table-hover align-middle text-center">
+        <thead class="table-secondary">
+            <tr>
+                <th>ID</th>
+                <th>Month</th>
+                <th>Year</th>
+                <th>Generated Time</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody class="table-light">
+        {% for report in report_list %}
+            <tr>
+                <td>{{ report.id }}</td>
+                <td>{{ report.month }}</td>
+                <td>{{ report.year }}</td>
+                <td>{{ report.generated_time }}</td>
+                <td>
+                    <a href="{% url 'login:login_report_download' report.id %}" 
+                       class="btn btn-sm btn-success" target="_blank">
+                       📄 Download PDF
+                    </a>
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">No Data</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- 消息显示 -->
+    {% if messages %}
+    <ul class="mt-3">
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+</div>
+{% endblock %}

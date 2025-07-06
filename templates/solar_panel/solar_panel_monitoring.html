@@ -1,0 +1,433 @@
+{% extends "navigation_bar.html" %}
+{% block content %}
+<head>
+    <title>Solar Panel Monitoring</title>
+    <meta http-equiv="refresh" content="600">
+</head>
+<style>
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f0f2f5;
+        color: #333;
+    }
+
+    .zone-card {
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        padding: 25px;
+        margin-bottom: 30px;
+        transition: transform 0.3s ease-in-out;
+    }
+
+    .zone-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .zone-card h4 {
+        color: #2c3e50;
+        font-size: 1.8em;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #e0e0e0;
+        padding-bottom: 10px;
+    }
+
+    .panel-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 20px;
+    }
+
+    .panel-box {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border: 1px solid #ced4da;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease-in-out;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .panel-box:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .panel-box p {
+        margin: 8px 0;
+        font-size: 0.95em;
+        color: #555;
+    }
+
+    .panel-box p strong {
+        color: #333;
+    }
+
+    .status-normal {
+        color: green; /* Green */
+        font-weight: bold;
+    }
+
+    .status-high {
+        color: orange; /* Orange */
+        font-weight: bold;
+    }
+
+    .status-too-high {
+        color: red; /* Red */
+        font-weight: bold;
+    }
+
+    .status-stop {
+        color: black; /* Black */
+        font-weight: bold;
+    }
+
+    .status-fire {
+        color: darkred; /* Darker Red */
+        font-weight: bold;
+    }
+
+    .status-unknown {
+        color: gray; /* Gray */
+    }
+
+    .damage-none {
+        color: green; /* Green */
+        font-weight: bold;
+    }
+
+    .damage-yes {
+        color: red; /* Red */
+        font-weight: bold;
+    }
+
+    .cleanliness-high {
+        color: green; /* Green */
+        font-weight: bold;
+    }
+
+    .cleanliness-medium {
+        color: orange; /* Orange */
+        font-weight: bold;
+    }
+
+    .cleanliness-low {
+        color: red; /* Red */
+        font-weight: bold;
+    }
+
+    .charts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 30px;
+        margin-top: 40px;
+        margin-bottom: 30px;
+    }
+
+    canvas {
+        background: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        max-width: 100%;
+        height: auto;
+        transition: all 0.3s ease-in-out;
+    }
+
+    canvas:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    #currentTime {
+        font-size: 1.2em;
+        color: #2c3e50;
+        font-weight: bold;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.4);
+    }
+
+    .modal-content {
+        color: white;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: red;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 400px;
+        height: 300px;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+</style>
+
+<h2>Solar Panel Monitoring</h2>
+<p>Current Time: <span id="currentTime"></span></p>
+
+<div id="myModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Warning!!!</h3>
+        <p>Solar Panel is fire</p>
+    </div>
+</div>
+
+<button id="modalBtn" style="margin: 10px 0; padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+    Alert Warning
+</button>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+
+<script>
+    function updateTime() {
+        const now = new Date();
+        document.getElementById('currentTime').textContent = now.toLocaleString();
+    }
+
+    updateTime();
+    setInterval(updateTime, 1000);
+
+    var modal = document.getElementById("myModal");
+
+    var btn = document.getElementById("modalBtn");
+
+    var span = document.getElementsByClassName("close")[0];
+
+    btn.onclick = function() {
+        modal.style.display = "block";
+    }
+
+    span.onclick = function() {
+        modal.style.display = "none";
+    }
+
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+</script>
+
+    {% if context.all_zone_monitoring %}
+        <div class="charts">
+            <div style="width: 400px; height: 400px;">
+                <canvas id="statusPieChart"></canvas>
+            </div>
+            <div style="width: 400px; height: 400px;">
+                <canvas id="damagePieChart"></canvas>
+            </div>
+            <div style="width: 400px; height: 400px;">
+                <canvas id="cleanlinessPieChart"></canvas>
+            </div>
+        </div>
+    {% endif %}
+
+    <script>
+        function setData(data, tags, count, dic, num1, num2) {
+
+            for (let i = 0; i < tags.length; i++) {
+                dic[tags[i]] = count[i];
+            }
+
+            for (let i = num1; i <= num2; i++) {
+                if (!(i in dic)) {
+                    dic[i] = 0
+                }
+                data.push(dic[i])
+            }
+        }
+
+
+    function pieChart(CTX, labels, data, color, title) {
+
+        new Chart(CTX, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: color,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: title
+                    },
+                    datalabels: {
+                        formatter: (value, ctx) => {
+                            if (value === 0) {
+                                return '';
+                            }
+                            let sum = 0;
+                            let dataArr = ctx.chart.data.datasets[0].data;
+                            dataArr.map(data => {
+                                sum += data;
+                            });
+                            let percentage = (value * 100 / sum).toFixed(2) + '%';
+                            return percentage;
+                        },
+                        color: '#fff',
+                        font: {
+                            weight: 'bold',
+                            size: 14
+                        }
+                    }
+                }
+            },
+            plugins: [ChartDataLabels]
+        });
+    }
+
+        const statusCTX = document.getElementById('statusPieChart').getContext('2d');
+        const statusLabels = ['Normal', 'Temperature High', 'Temperature Too High', 'Stop Run', 'Fire', 'Unknown']
+        const statusColors = ["green","orange","red","black","darkred","gray"]
+        const statusTitle = 'Solar Panel Status'
+        const statusData = []
+        const statusTags = []
+        const statusCount = []
+        const statusDic = {}
+        {% for count in context.count_status %}
+        {% for key,value in count.items %}
+            {% if key == "status" %}
+                statusTags.push({{ value }})
+            {% endif %}
+            {% if key == "count" %}
+                statusCount.push({{ value }})
+            {% endif %}
+        {% endfor %}
+        {% endfor %}
+
+        const damageCTX = document.getElementById('damagePieChart').getContext('2d');
+        const damageLabels = ['None', 'Yes', 'Unknown']
+        const damageColors = ['green', 'red', 'gray']
+        const damageTile = 'Solar Panel Damage'
+        const damageData = []
+        const damageTags = []
+        const damageCount = []
+        const damageDic = {}
+        {% for count in context.count_damage %}
+        {% for key,value in count.items %}
+            {% if key == "damage" %}
+                damageTags.push({{ value }})
+            {% endif %}
+            {% if key == "count" %}
+                damageCount.push({{ value }})
+            {% endif %}
+        {% endfor %}
+        {% endfor %}
+
+        const cleanlinessCTX = document.getElementById('cleanlinessPieChart').getContext('2d');
+        const cleanlinessLabels = ['Clean', 'Little Dirty', 'Very Dirty', 'Unknown']
+        const cleanlinessColors = ['green', 'orange', 'red', 'gray']
+        const cleanlinessTitle = 'Solar Panel Cleanliness'
+        const cleanlinessData = []
+        const cleanlinessTags = []
+        const cleanlinessCount = []
+        const cleanlinessDic = {}
+        {% for count in context.count_cleanliness %}
+        {% for key,value in count.items %}
+            {% if key == "cleanliness" %}
+                cleanlinessTags.push({{ value }})
+            {% endif %}
+            {% if key == "count" %}
+                cleanlinessCount.push({{ value }})
+            {% endif %}
+        {% endfor %}
+        {% endfor %}
+
+        setData(statusData,statusTags,statusCount,statusDic,1,6)
+        setData(damageData,damageTags,damageCount,damageDic,0,2)
+        setData(cleanlinessData,cleanlinessTags,cleanlinessCount,cleanlinessDic,1,4)
+
+        pieChart(statusCTX,statusLabels,statusData,statusColors,statusTitle)
+        pieChart(damageCTX,damageLabels,damageData,damageColors,damageTile)
+        pieChart(cleanlinessCTX,cleanlinessLabels,cleanlinessData,cleanlinessColors,cleanlinessTitle)
+    </script>
+
+{% for zone,monitoring_list in context.all_zone_monitoring.items %}
+    <div class="zone-card">
+        <h4>Zone {{ zone }}</h4>
+        <div class="panel-grid">
+            {% for monitoring in monitoring_list %}
+                <div class="panel-box">
+                    <p><strong>ID:</strong> {{ monitoring.solar_panel.id }}</p>
+                    <p><strong>Name:</strong> {{ monitoring.solar_panel.name }}</p>
+                    <p><strong>Temperature:</strong> {{ monitoring.temperature }}°C</p>
+                    <p><strong>Status:</strong>
+                        {% if monitoring.status == 1 %}
+                            <span class="status-normal">Normal</span>
+                        {% elif monitoring.status == 2 %}
+                            <span class="status-high">Temperature High</span>
+                        {% elif monitoring.status == 3 %}
+                            <span class="status-too-high">Temperature Too High</span>
+                        {% elif monitoring.status == 4 %}
+                            <span class="status-stop">Stop</span>
+                        {% elif monitoring.status == 5 %}
+                            <span class="status-fire">Fire</span>
+                        {% else %}
+                            <span class="status-unknown">Unknown</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Damage:</strong>
+                        {% if monitoring.damage == 0 %}
+                            <span class="damage-none">None</span>
+                        {% elif monitoring.damage == 1 %}
+                            <span class="damage-yes">Yes</span>
+                        {% else %}
+                            <span class="status-unknown">Unknown</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Cleanliness:</strong>
+                        {% if monitoring.cleanliness == 1 %}
+                            <span class="cleanliness-high">Clean</span>
+                        {% elif monitoring.cleanliness == 2 %}
+                            <span class="cleanliness-medium">Little Dirty</span>
+                        {% elif monitoring.cleanliness == 3 %}
+                            <span class="cleanliness-low">Very Dirty</span>
+                        {% else %}
+                            <span class="status-unknown">Unknown</span>
+                        {% endif %}
+                    </p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endfor %}
+    {% if not context.all_zone_monitoring %}
+    <div class="text-center my-4" style="font-size: 1.5rem;">
+        No Data
+    </div>
+{% endif %}
+{% endblock %}

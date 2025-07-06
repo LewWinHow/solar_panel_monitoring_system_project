@@ -1,0 +1,259 @@
+{% extends 'navigation_bar.html' %}
+{% block content %}
+    <!-- Page Title -->
+    <title>Solar Panel Information</title>
+    <h2 class="mb-4">Solar Panel Information</h2>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <!-- Add Solar Panel Button -->
+        {% if permission == 1 %}
+            <div class="d-flex align-items-center">
+                <a href="{% url 'solar_panel:add_solar_panel' %}" class="btn btn-success me-2">+ Add Solar Panel</a>
+            </div>
+        {% endif %}
+        <div class="d-flex">
+            <form method="post" class="d-flex align-items-center" id="filter_form">
+                {% csrf_token %}
+                <div class="form-group d-flex align-items-center me-2">
+                    Search:&nbsp;
+                    <select class="form-select" id="filter_select" name="filter_select" style="width: 150px"
+                            onchange="ChangeFilterSelect()">
+                        <option value="1" {% if filter_select == "1" %}selected{% endif %}>All</option>
+                        <option value="2" {% if filter_select == "2" %}selected{% endif %}>ID</option>
+                        <option value="3" {% if filter_select == "3" %}selected{% endif %}>Name</option>
+                        <option value="4" {% if filter_select == "4" %}selected{% endif %}>Zone</option>
+                        <option value="5" {% if filter_select == "5" %}selected{% endif %}>Status</option>
+                        <option value="6" {% if filter_select == "6" %}selected{% endif %}>Created Time</option>
+                    </select>
+                </div>
+                <input type="{% if filter_select == "1" or filter_select == "5" %}hidden{% elif filter_select == "2" or filter_select == "4" %}number{% elif filter_select == "3" %}text{% elif filter_select == "6" %}datetime-local{% else %}hidden{% endif %}"
+                       placeholder="{% if filter_select == "2" %}Example: 1{% elif filter_select == "3" %}Example: Panasonic{% elif filter_select == "4" %}Example: 1{% endif %}"
+                       class="form-control me-2" id="filter_input" name="filter_input" style="width: 300px"
+                       value="{% if filter_input %}{{ filter_input }}{% else %}{% endif %}">
+                <input type="{% if filter_select == "6" %}datetime-local{% else %}hidden{% endif %}"
+                       class="form-control me-2" id="filter_input_second" name="filter_input_second"
+                       style="width: 300px" value="{% if filter_input_second %}{{ filter_input_second }}{% else %}{% endif %}">
+                <select class="form-select me-2" id="status_select" name="status_select"
+                        {% if filter_select == "5" %}{% else %}hidden {% endif %} onchange="ChangeFilterSelect()">
+                    <option value="1" {% if status_select == "1" %}selected{% endif %}>Active</option>
+                    <option value="0" {% if status_select == "0" %}selected{% endif %}>No Active</option>
+                </select>
+            </form>
+        </div>
+    </div>
+    <script>
+        let timer;
+        const form = document.getElementById("filter_form");
+
+        document.getElementById("filter_input").addEventListener("input", function () {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                form.submit();
+            }, 500); // 延迟 500ms 提交
+        });
+
+        document.getElementById("filter_input_second").addEventListener("input", function () {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                form.submit();
+            }, 500); // 延迟 500ms 提交
+        });
+
+        function ChangeFilterSelect() {
+            const form = document.getElementById("filter_form");
+            const filterSelect = document.getElementById('filter_select');
+            const filterInput = document.getElementById('filter_input');
+            const filterInputSecond = document.getElementById('filter_input_second');
+            const statusSelect = document.getElementById('status_select');
+            if (filterSelect.value == 1) {
+                filterInput.type = "hidden"
+                filterInputSecond.type = "hidden"
+                statusSelect.hidden = true
+                filterInput.value = ""
+                filterInputSecond.value = ""
+            } else if (filterSelect.value == 2) {
+                filterInput.placeholder = 'Example: 1';
+                filterInput.type = "number"
+                filterInputSecond.type = "hidden"
+                statusSelect.hidden = true
+                filterInput.value = ""
+                filterInputSecond.value = ""
+            } else if (filterSelect.value == 3) {
+                filterInput.placeholder = 'Example: Panasonic Solar Panel';
+                filterInput.type = "text"
+                filterInputSecond.type = "hidden"
+                statusSelect.hidden = true
+                filterInput.value = ""
+                filterInputSecond.value = ""
+            } else if (filterSelect.value == 4) {
+                filterInput.placeholder = 'Example: 1';
+                filterInput.type = "number"
+                filterInputSecond.type = "hidden"
+                statusSelect.hidden = true
+                filterInput.value = ""
+                filterInputSecond.value = ""
+            } else if (filterSelect.value == 5) {
+                filterInput.type = "hidden"
+                filterInputSecond.type = "hidden"
+                statusSelect.hidden = false
+                filterInput.value = ""
+                filterInputSecond.value = ""
+            } else if (filterSelect.value == 6) {
+                filterInput.type = "datetime-local"
+                filterInputSecond.type = "datetime-local"
+                statusSelect.hidden = true
+                filterInput.value = ""
+                filterInputSecond.value = ""
+            }
+
+            form.submit()
+        }
+    </script>
+
+    <div class="data_list">
+        <table class="table table-bordered table-hover align-middle text-center">
+            <thead class="table-secondary">
+            <tr>
+                <th>ID
+                    <div class="d-inline-block ms-2">
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <select class="form-select me-2" id="order_by" name="order_by"
+                                    onchange="this.form.submit()">
+                                <option value="1" {% if order_by == "1" %}selected{% endif %}>Order</option>
+                                <option value="2" {% if order_by == "2" %}selected{% endif %}>Reverse</option>
+                            </select>
+                            <input type="hidden" id="filter_select" name="filter_select"
+                                   value="{% if filter_select %}{{ filter_select }}{% endif %}">
+                            <input type="hidden" id="filter_input" name="filter_input"
+                                   value="{% if filter_input %}{{ filter_input }}{% endif %}">
+                            <input type="hidden" id="filter_input_second" name="filter_input_second"
+                                   value="{% if filter_input_second %}{{ filter_input_second }}{% endif %}">
+                        </form>
+                    </div>
+                </th>
+                <th>Name</th>
+                <th>Zone</th>
+                <th>Position</th>
+                <th>Temperature Threshold</th>
+                <th>Status</th>
+                <th>Created Time</th>
+                <th>Updated Time</th>
+                {% if permission == 1 %}
+                    <th>Action</th>
+                {% endif %}
+            </tr>
+            </thead>
+            {% if solar_panel_list %}
+                {% for solar_panel in solar_panel_list %}
+                    <tbody class="table-light">
+                    <tr>
+                        <td>{{ solar_panel.id }}</td>
+                        <td>{{ solar_panel.name }}</td>
+                        <td>{{ solar_panel.zone }}</td>
+                        <td>{{ solar_panel.position }}</td>
+                        <td>{{ solar_panel.temperature_threshold }}°C</td>
+                        <td>{% if solar_panel.status == 1 %}Active{% else %}No Active{% endif %}</td>
+                        <td>{{ solar_panel.created_time }}</td>
+                        <td>{{ solar_panel.updated_time }}</td>
+                        {% if permission == 1 %}
+                            <td>
+                                <a href="{% url 'solar_panel:edit_solar_panel' solar_panel.id %}"
+                                   class="btn btn-primary">Edit</a>
+                                <a href="{% url 'solar_panel:solar_panel_satus' solar_panel.id %}"
+                                   class="btn btn-warning"
+                                   onclick="return confirm('Are you sure you want to {% if solar_panel.status == 0 %}enable{% else %}disable{% endif %} this solar panel?')">
+                                    {% if solar_panel.status == 0 %}Enable{% else %}Disable{% endif %}</a>
+                                <a href="{% url 'solar_panel:delete_solar_panel' solar_panel.id %}"
+                                   class="btn btn-danger"
+                                   onclick="return confirm('Are you sure you want to delete this solar panel?')">Delete</a>
+                            </td>
+                        {% endif %}
+                    </tr>
+                    </tbody>
+                {% endfor %}
+            {% endif %}
+        </table>
+
+        {% if solar_panel_list %}
+            <div class="d-flex justify-content-center mt-4">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination">
+                        {% if solar_panel_list.has_previous %}
+                            <li class="page-item">
+                                <form method="post" action="{% url "solar_panel:solar_panel_info" 1 %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" id="filter_select" name="filter_select"
+                                           value="{% if filter_select %}{{ filter_select }}{% endif %}">
+                                    <input type="hidden" id="filter_input" name="filter_input"
+                                           value="{% if filter_input %}{{ filter_input }}{% endif %}">
+                                    <input type="hidden" id="filter_input_second" name="filter_input_second"
+                                           value="{% if filter_input_second %}{{ filter_input_second }}{% endif %}">
+                                    <input type="hidden" id="order_by" name="order_by"
+                                           value="{% if order_by %}{{ order_by }}{% endif %}">
+                                    <input class="btn btn-primary" type="submit" value="First">
+                                </form>
+                            </li>
+                            <li class="page-item">
+                                <form method="post"
+                                      action="{% url "solar_panel:solar_panel_info" solar_panel_list.previous_page_number %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" id="filter_select" name="filter_select"
+                                           value="{% if filter_select %}{{ filter_select }}{% endif %}">
+                                    <input type="hidden" id="filter_input" name="filter_input"
+                                           value="{% if filter_input %}{{ filter_input }}{% endif %}">
+                                    <input type="hidden" id="filter_input_second" name="filter_input_second"
+                                           value="{% if filter_input_second %}{{ filter_input_second }}{% endif %}">
+                                    <input type="hidden" id="order_by" name="order_by"
+                                           value="{% if order_by %}{{ order_by }}{% endif %}">
+                                    <input class="btn btn-primary" type="submit" value="Previous">
+                                </form>
+                            </li>
+                        {% endif %}
+
+                        <li class="page-item disabled">
+                <span class="btn btn-primary">
+                    Page {{ solar_panel_list.number }} of {{ solar_panel_list.paginator.num_pages }}
+                </span>
+                        </li>
+                        {% if solar_panel_list.has_next %}
+                            <li class="page-item">
+                                <form method="post"
+                                      action="{% url "solar_panel:solar_panel_info" solar_panel_list.next_page_number %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" id="filter_select" name="filter_select"
+                                           value="{% if filter_select %}{{ filter_select }}{% endif %}">
+                                    <input type="hidden" id="filter_input" name="filter_input"
+                                           value="{% if filter_input %}{{ filter_input }}{% endif %}">
+                                    <input type="hidden" id="filter_input_second" name="filter_input_second"
+                                           value="{% if filter_input_second %}{{ filter_input_second }}{% endif %}">
+                                    <input type="hidden" id="order_by" name="order_by"
+                                           value="{% if order_by %}{{ order_by }}{% endif %}">
+                                    <input class="btn btn-primary" type="submit" value="Next">
+                                </form>
+                            </li>
+                            <li class="page-item">
+                                <form method="post"
+                                      action="{% url "solar_panel:solar_panel_info" solar_panel_list.paginator.num_pages %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" id="filter_select" name="filter_select"
+                                           value="{% if filter_select %}{{ filter_select }}{% endif %}">
+                                    <input type="hidden" id="filter_input" name="filter_input"
+                                           value="{% if filter_input %}{{ filter_input }}{% endif %}">
+                                    <input type="hidden" id="filter_input_second" name="filter_input_second"
+                                           value="{% if filter_input_second %}{{ filter_input_second }}{% endif %}">
+                                    <input type="hidden" id="order_by" name="order_by"
+                                           value="{% if order_by %}{{ order_by }}{% endif %}">
+                                    <input class="btn btn-primary" type="submit" value="Last">
+                                </form>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        {% else %}
+            <div class="text-center my-4" style="font-size: 1.5rem;">
+                No Data
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
