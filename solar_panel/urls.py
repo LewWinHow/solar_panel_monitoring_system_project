@@ -46,7 +46,8 @@ urlpatterns = [
     path("solar_panel_report/<int:page>", views.ReportOfSolarPanel.as_view(), name="solar_panel_report"),
 
     # View Report PDF
-    path("solar_panel_report/view_pdf/<int:report_id>/", views.view_report_pdf, name="view_report_pdf"),
+    path("solar_panel_report/view_pdf/<int:id>/<int:download>", views.SolarPanelReportPDFView.as_view(), name="solar_panel_report_pdf"),
+
 
     # Data Receive & Record Delete
     path("receive_solar_panel/", views.ReceiveSolarPanel.as_view(), name="receive_solar_panel"),
