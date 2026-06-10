@@ -51,4 +51,6 @@ urlpatterns = [
     # Data Receive & Record Delete
     path("receive_solar_panel/", views.ReceiveSolarPanel.as_view(), name="receive_solar_panel"),
     path("delete_solar_panel_record/<int:id>", views.DeleteSolarPanelRecord.as_view(), name="delete_solar_panel_record"),
+    path("delete_solar_panel_report/<int:id>", views.DeleteSolarPanelReport.as_view(),
+         name="delete_solar_panel_report"),
 ]

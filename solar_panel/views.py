@@ -1,51 +1,42 @@
-import datetime
+import io
 import json
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models.functions import ExtractMinute
-from django.db.transaction import savepoint
-from django.http import HttpResponse, JsonResponse, Http404
-from django.shortcuts import render, redirect, get_object_or_404
-from django.template.context_processors import request
-from django.utils.dateparse import parse_datetime
+import datetime
+
+from django.db.models import Count
+
+from django.http import HttpResponse, FileResponse
+from django.shortcuts import redirect, get_object_or_404
+
+from django.utils.timezone import make_aware, localtime, is_naive
 from django.utils.decorators import method_decorator
+
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from django.views import View
-from django.utils.timezone import now
-from getmac import get_mac_address
+from django.contrib.auth.mixins import LoginRequiredMixin
 
-from login.models import LoginInfo
-import solar_panel
-from .models import SolarPanel, SolarPanelRecord, AVGTemperatureByZone, AVGTemperatureByTime
-from django.db.models import Avg, Count
-from django.utils import timezone
-from collections import OrderedDict
-from django.views import View
-from django.shortcuts import render, get_object_or_404
-from django.http import FileResponse
-from .models import SolarPanelReportt
-from django.utils.timezone import now
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
-from django.contrib import messages
-from django.utils.timezone import make_aware, localtime, is_naive
-from io import BytesIO
-import io
+
+from solar_panel.models import (
+    SolarPanelRecord,
+    SolarPanelMonitoring,
+    SolarPanelReport,
+    ContentOfSolarPanelReport, SolarPanelDetectVideo,
+)
+
+from utils.general_function import *
+from ai_model.detect_solar_panel_model.detect_solar_panel_with_image import detect_solar_panel_with_image
+from ai_model.detect_solar_panel_model.detect_solar_panel_with_video import detect_solar_panel_with_video
+from solar_panel.models import SolarPanel
 import os
-from solar_panel import models
-from solar_panel.models import SolarPanel, SolarPanelRecord, SolarPanelMonitoring, SolarPanelReportt
-from . import views
-from general_func import *
-from ai_model.image_detect_model.program import detect_solar_panel
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 
 class SolarPanelInfo(LoginRequiredMixin, View):
 
     def get(self, request, page=1):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
 
         user = request.user
         permission = 1 if user.is_superuser else (2 if not user.is_superuser and user.is_staff else 3)
@@ -57,8 +48,6 @@ class SolarPanelInfo(LoginRequiredMixin, View):
                        'is_paginated': is_paginated})
 
     def post(self, request, page=1):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
 
         user = request.user
         permission = 1 if user.is_superuser else (2 if not user.is_superuser and user.is_staff else 3)
@@ -83,7 +72,8 @@ class SolarPanelInfo(LoginRequiredMixin, View):
                 if filter_input:
                     solar_panel_list = SolarPanel.objects.filter(zone=filter_input).all()
             elif filter_select == "5":
-                solar_panel_list = SolarPanel.objects.filter(status=status_select).all()
+                if status_select:
+                    solar_panel_list = SolarPanel.objects.filter(status=status_select).all()
             elif filter_select == "6":
                 if filter_input and filter_input_second:
                     solar_panel_list = SolarPanel.objects.filter(created_time__gte=filter_input,
@@ -117,8 +107,6 @@ class SolarPanelInfo(LoginRequiredMixin, View):
 class SolarPanelStatus(LoginRequiredMixin, View):
 
     def get(self, request, id):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
 
         solar_panel = SolarPanel.objects.get(id=id)
 
@@ -139,8 +127,6 @@ class SolarPanelStatus(LoginRequiredMixin, View):
 class AddSolarPanel(LoginRequiredMixin, View):
 
     def get(self, request):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
 
         user = request.user
         if not user.is_superuser:
@@ -149,8 +135,6 @@ class AddSolarPanel(LoginRequiredMixin, View):
         return render(request, "solar_panel/add_edit_solar_panel.html", {"page": "add_solar_panel"})
 
     def post(self, request):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
 
         user = request.user
         if not user.is_superuser:
@@ -167,22 +151,13 @@ class AddSolarPanel(LoginRequiredMixin, View):
 
         zone = request.POST.get("zone") or None
         position = request.POST.get("position") or None
-        solar_panel = models.SolarPanel.objects.filter(
+        solar_panel = SolarPanel.objects.filter(
             zone=zone, position=position
         ).first()
 
         if solar_panel:
             return hint_message(
                 request, "This position already exists.", "solar_panel:add_solar_panel"
-            )
-
-        temperature_threshold = float(request.POST.get("temperature_threshold")) or None
-
-        if temperature_threshold < 0:
-            return hint_message(
-                request,
-                "Temperature must be greater than 0.",
-                "solar_panel:add_solar_panel",
             )
 
         status = request.POST.get("status") or None
@@ -194,7 +169,6 @@ class AddSolarPanel(LoginRequiredMixin, View):
                 name=name,
                 zone=zone,
                 position=position,
-                temperature_threshold=temperature_threshold,
                 status=status,
             )
             solar_panel.save()
@@ -204,7 +178,6 @@ class AddSolarPanel(LoginRequiredMixin, View):
                 name=name,
                 zone=zone,
                 position=position,
-                temperature_threshold=temperature_threshold,
                 status=status,
             )
             solar_panel.save()
@@ -215,8 +188,6 @@ class AddSolarPanel(LoginRequiredMixin, View):
 class DeleteSolarPanel(LoginRequiredMixin, View):
 
     def get(self, request, id):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
 
         user = request.user
         if not user.is_superuser:
@@ -244,8 +215,6 @@ class DeleteSolarPanel(LoginRequiredMixin, View):
 
 class EditSolarPanel(LoginRequiredMixin, View):
     def get(self, request, id):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
 
         user = request.user
         if not user.is_superuser:
@@ -260,8 +229,6 @@ class EditSolarPanel(LoginRequiredMixin, View):
                       {"page": "edit_solar_panel", "solar_panel": solar_panel})
 
     def post(self, request, id):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
 
         user = request.user
         if not user.is_superuser:
@@ -284,29 +251,19 @@ class EditSolarPanel(LoginRequiredMixin, View):
         zone = request.POST.get("zone") or None
         position = request.POST.get("position") or None
 
-        solar_panel = models.SolarPanel.objects.filter(zone=zone, position=position).exclude(id=id).first()
+        solar_panel = SolarPanel.objects.filter(zone=zone, position=position).exclude(id=id).first()
 
         if solar_panel:
             return hint_message(
                 request, "This position already exists.", "solar_panel:add_solar_panel"
             )
 
-        temperature_threshold = float(request.POST.get("temperature_threshold")) or None
-
-        if temperature_threshold < 0:
-            return hint_message(
-                request,
-                "Temperature must be greater than 0.",
-                "solar_panel:add_solar_panel",
-            )
-
         status = request.POST.get("status") or None
 
-        solar_panel = models.SolarPanel.objects.filter(id=id).first()
+        solar_panel = SolarPanel.objects.filter(id=id).first()
         solar_panel.name = name
         solar_panel.zone = zone
         solar_panel.position = position
-        solar_panel.temperature_threshold = temperature_threshold
         solar_panel.status = status
         solar_panel.save()
 
@@ -318,12 +275,10 @@ class EditSolarPanel(LoginRequiredMixin, View):
 class MonitoringSolarPanel(LoginRequiredMixin, View):
 
     def get(self, request):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
 
         monitoring_list = SolarPanelMonitoring.objects.filter(solar_panel__status=1).all()
         zones = []
-        all_zone_monitoring = {}
+        monitoring_by_zone_list = {}
         for monitoring in monitoring_list:
             if monitoring.solar_panel.zone not in zones:
                 zones.append(monitoring.solar_panel.zone)
@@ -332,38 +287,25 @@ class MonitoringSolarPanel(LoginRequiredMixin, View):
             monitoring_list_by_zone = SolarPanelMonitoring.objects.filter(solar_panel__status=1,
                                                                           solar_panel__zone=zone).all().order_by(
                 "solar_panel__position")
-            all_zone_monitoring[str(zone)] = monitoring_list_by_zone
+            monitoring_by_zone_list[str(zone)] = monitoring_list_by_zone
 
-        count_status = SolarPanelMonitoring.objects.filter(solar_panel__status=1).values("status").annotate(
-            count=Count("id"))
         count_damage = SolarPanelMonitoring.objects.filter(solar_panel__status=1).values("damage").annotate(
             count=Count("id"))
         count_cleanliness = SolarPanelMonitoring.objects.filter(solar_panel__status=1).values("cleanliness").annotate(
             count=Count("id"))
 
-        data = []
-        all_avg_tmp_by_time = AVGTemperatureByTime.objects.annotate(minute=ExtractMinute("recorded_time")).filter(
-            minute__in=[0, 10, 20, 30, 40, 50])
-        for avg_tmp_by_time in all_avg_tmp_by_time:
-            avg_tmp_by_zone = AVGTemperatureByZone.objects.filter(AVGTemperatureByTime_id=avg_tmp_by_time.id).values(
-                "zone", "avg_temperature")
-            data2 = {avg_tmp_by_time.recorded_time.strftime("%H:%M"): avg_tmp_by_zone}
-            data.append(data2)
-
-        context = {"all_zone_monitoring": all_zone_monitoring, "count_status": count_status,
-                   "count_damage": count_damage, "count_cleanliness": count_cleanliness, "data": data}
-
+        # warning_solar_panel_list = WarningSolarPanel.objects.all()
+        solar_panel_detect_video = SolarPanelDetectVideo.objects.last()
         user = request.user
         permission = 1 if user.is_superuser else (2 if not user.is_superuser and user.is_staff else 3)
         return render(request, "solar_panel/solar_panel_monitoring.html",
-                      {"permission": permission, "context": context})
+                      {"permission": permission, "monitoring_by_zone_list": monitoring_by_zone_list,
+                       "count_damage": count_damage, "count_cleanliness": count_cleanliness, "solar_panel_detect_video": solar_panel_detect_video})
 
 
 class RecordOfSolarPanel(LoginRequiredMixin, View):
 
     def get(self, request, page=1):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
 
         solar_panel_record_list = SolarPanelRecord.objects.all()
         solar_panel_record_list = get_data_by_page(solar_panel_record_list, page)[0]
@@ -374,55 +316,50 @@ class RecordOfSolarPanel(LoginRequiredMixin, View):
                       {"permission": permission, "solar_panel_record_list": solar_panel_record_list,
                        "is_paginated": is_paginated})
 
-    def post(self, request):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
-        
+    def post(self, request, page=1):
+
         user = request.user
         permission = 1 if user.is_superuser else (2 if not user.is_superuser and user.is_staff else 3)
-        
+
         filter_select = request.POST.get("filter_select") or None
         filter_input = request.POST.get("filter_input") or None
-
         filter_input_second = request.POST.get("filter_input_second") or None
-        status_select = request.POST.get("status_select") or None
         damage_select = request.POST.get("damage_select") or None
         cleanliness_select = request.POST.get("cleanliness_select") or None
-        solar_panel_list = SolarPanel.objects.all()
+        solar_panel_record_list = SolarPanelRecord.objects.all()
         order_by = request.POST.get("order_by") or None
 
         if filter_select:
             if filter_select == "1":
-                solar_panel_list = SolarPanelRecord.objects.all()
+                solar_panel_record_list = SolarPanelRecord.objects.all()
             elif filter_select == "2":
                 if filter_input:
-                    solar_panel_list = SolarPanelRecord.objects.filter(id=filter_input).all()
+                    solar_panel_record_list = SolarPanelRecord.objects.filter(id=filter_input).all()
             elif filter_select == "3":
                 if filter_input:
-                    solar_panel_list = SolarPanelRecord.objects.filter(name__contains=filter_input).all()
+                    solar_panel_record_list = SolarPanelRecord.objects.filter(solar_panel__id=filter_input).all()
             elif filter_select == "4":
                 if filter_input:
-                    solar_panel_list = SolarPanelRecord.objects.filter(zone=filter_input).all()
+                    solar_panel_record_list = SolarPanelRecord.objects.filter(
+                        solar_panel__name__contains=filter_input).all()
             elif filter_select == "5":
-                solar_panel_list = SolarPanelRecord.objects.filter(status=status_select).all()
+                if filter_input:
+                    solar_panel_record_list = SolarPanelRecord.objects.filter(solar_panel__zone=filter_input).all()
             elif filter_select == "6":
-                solar_panel_list = SolarPanelRecord.objects.filter(damage=damage_select).all()
+                if damage_select:
+                    solar_panel_record_list = SolarPanelRecord.objects.filter(damage=damage_select).all()
             elif filter_select == "7":
-                solar_panel_list = SolarPanelRecord.objects.filter(cleanliness=cleanliness_select).all()
+                if cleanliness_select:
+                    solar_panel_record_list = SolarPanelRecord.objects.filter(cleanliness=cleanliness_select).all()
             elif filter_select == "8":
                 if filter_input and filter_input_second:
-                    solar_panel_list = SolarPanelRecord.objects.filter(created_time__gte=filter_input,
-                                                                 created_time__lte=filter_input_second).all()
+                    solar_panel_record_list = SolarPanelRecord.objects.filter(recorded_time__gte=filter_input,
+                                                                              recorded_time__lte=filter_input_second).all()
                 elif filter_input and filter_input_second is None:
-                    solar_panel_list = SolarPanelRecord.objects.filter(created_time__gte=filter_input).all()
+                    solar_panel_record_list = SolarPanelRecord.objects.filter(recorded_time__gte=filter_input).all()
                 elif filter_input is None and filter_input_second:
-                    solar_panel_list = SolarPanelRecord.objects.filter(created_time__lte=filter_input_second).all()
-                else:
-                    solar_panel_list = SolarPanelRecord.objects.all()
-            else:
-                solar_panel_list = SolarPanelRecord.objects.all()
-        else:
-            solar_panel_list = SolarPanelRecord.objects.all()
+                    solar_panel_record_list = SolarPanelRecord.objects.filter(
+                        recorded_time__lte=filter_input_second).all()
 
         if order_by and order_by == "2":
             solar_panel_record_list = solar_panel_record_list.order_by("-id")
@@ -430,143 +367,130 @@ class RecordOfSolarPanel(LoginRequiredMixin, View):
             solar_panel_record_list = solar_panel_record_list.order_by("id")
 
         solar_panel_record_list = get_data_by_page(solar_panel_record_list, page)[0]
-        is_paginated = get_data_by_page(solar_panel_record_list, page)[1]        
+        is_paginated = get_data_by_page(solar_panel_record_list, page)[1]
         return render(request, "solar_panel/solar_panel_record.html",
-                      {"permission": permission, "solar_panel_record_list": solar_panel_record_list})
+                      {"permission": permission, "solar_panel_record_list": solar_panel_record_list,
+                       "is_paginated": is_paginated, "filter_select": filter_select, "filter_input": filter_input,
+                       "filter_input_second": filter_input_second,
+                       "damage_select": damage_select,
+                       "cleanliness_select": cleanliness_select, "order_by": order_by})
 
 
 class ReportOfSolarPanel(LoginRequiredMixin, View):
     def get(self, request, page=1):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
 
         user = request.user
         permission = 1 if user.is_superuser else (2 if user.is_staff else 3)
 
-        reports = SolarPanelReportt.objects.all().order_by('-generated_time')
+        solar_panel_report_list = SolarPanelReport.objects.all()
+        solar_panel_report_list = get_data_by_page(solar_panel_report_list, page)[0]
+        is_paginated = get_data_by_page(solar_panel_report_list, page)[1]
 
         return render(request, "solar_panel/solar_panel_report.html", {
             "permission": permission,
-            "reports": reports
+            "solar_panel_report_list": solar_panel_report_list, "is_paginated": is_paginated,
         })
 
-    def post(self, request):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
+    def post(self, request, page=1):
 
-        current_time = now()
-        month = current_time.month
-        year = current_time.year
+        user = request.user
+        permission = 1 if user.is_superuser else (2 if user.is_staff else 3)
+        filter_select = request.POST.get("filter_select") or None
+        filter_input = request.POST.get("filter_input") or None
+        solar_panel_report_list = SolarPanelReport.objects.all()
+        order_by = request.POST.get("order_by") or None
 
-        if SolarPanelReportt.objects.filter(month=month, year=year).exists():
-            messages.error(request, f"❌ Report for {month}/{year} already exists.")
-            return redirect("solar_panel:solar_panel_report")
+        if filter_select:
+            if filter_select == "1":
+                solar_panel_report_list = SolarPanelReport.objects.all()
+            elif filter_select == "2":
+                if filter_input:
+                    solar_panel_report_list = SolarPanelReport.objects.filter(id=filter_input).all()
+            elif filter_select == "3":
+                if filter_input:
+                    solar_panel_report_list = SolarPanelReport.objects.filter(month=filter_input).all()
+            elif filter_select == "4":
+                if filter_input:
+                    solar_panel_report_list = SolarPanelReport.objects.filter(year=filter_input).all()
 
-        records = SolarPanelRecord.objects.filter(
-            recorded_time__year=year, recorded_time__month=month
-        )
+        if order_by and order_by == "2":
+            solar_panel_report_list = solar_panel_report_list.order_by("-id")
+        else:
+            solar_panel_report_list = solar_panel_report_list.order_by("id")
 
-        total_panels = records.values("solar_panel").distinct().count()
-        total_records = records.count()
+        solar_panel_report_list = get_data_by_page(solar_panel_report_list, page)[0]
+        is_paginated = get_data_by_page(solar_panel_report_list, page)[1]
+        return render(request, "solar_panel/solar_panel_report.html",
+                      {"permission": permission, "solar_panel_report_list": solar_panel_report_list,
+                       "is_paginated": is_paginated, "filter_select": filter_select, "filter_input": filter_input,
+                       "order_by": order_by})
 
-        status_count = {
-            1: records.filter(status=1).count(),
-            2: records.filter(status=2).count(),
-            3: records.filter(status=3).count(),
-            4: records.filter(status=4).count(),
-            5: records.filter(status=5).count(),
-        }
 
-        SolarPanelReportt.objects.create(
-            month=month,
-            year=year
-        )
+class SolarPanelReportPDFView(View):
+    def get(self, request, id, download=0):
+        report = get_object_or_404(SolarPanelReport, id=id)
+        content = ContentOfSolarPanelReport.objects.filter(solar_panel_report=report).first()
 
-        messages.success(request, f"✅ Report for {month}/{year} generated successfully.")
+        buffer = io.BytesIO()
+        p = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+
+        # 标题
+        p.setFont("Helvetica-Bold", 20)
+        p.drawCentredString(width / 2, height - 2 * cm, "Solar Panel Monthly Report")
+
+        # 基本信息
+        p.setFont("Helvetica", 12)
+        y = height - 3.5 * cm
+        p.drawString(2.5 * cm, y, f"Report ID: {id}")
+        y -= 0.8 * cm
+        p.drawString(2.5 * cm, y, f"Month/Year: {report.month}/{report.year}")
+
+        # 生成时间
+        if is_naive(report.generated_time):
+            created_time = make_aware(report.generated_time)
+        else:
+            created_time = report.generated_time
+
+        created_time_local = localtime(created_time)
+        y -= 0.8 * cm
+        p.drawString(2.5 * cm, y, f"Created Time: {created_time_local.strftime('%Y-%m-%d %H:%M:%S')}")
+
+        # 统计摘要
+        y -= 1.5 * cm
+        p.setFont("Helvetica-Bold", 14)
+        p.drawString(2.5 * cm, y, "Summary")
+
+        p.setFont("Helvetica", 12)
+        y -= 0.8 * cm
+        p.drawString(3 * cm, y, f"Total solar panels: {content.total_solar_panel}")
+        y -= 0.6 * cm
+        p.drawString(3 * cm, y, f"Damaged panels: {content.total_damage}")
+        y -= 0.6 * cm
+        p.drawString(3 * cm, y, f"Clean panels: {content.total_clean}")
+        y -= 0.6 * cm
+        p.drawString(3 * cm, y, f"Dusty panels: {content.total_dusty}")
+        y -= 0.6 * cm
+        p.drawString(3 * cm, y, f"Bird drop affected panels: {content.total_bird_drop}")
+
+        # 页脚页码
+        p.setFont("Helvetica-Oblique", 10)
+        p.drawRightString(width - 2 * cm, 1.5 * cm, "Page 1")
+
+        p.showPage()
+        p.save()
+        buffer.seek(0)
+        if download == 0:
+            return FileResponse(buffer, as_attachment=False, filename=f"SolarPanelReport-{id}.pdf")
+        else:
+            return FileResponse(buffer, as_attachment=True, filename=f"SolarPanelReport-{id}.pdf")
+
+
+class DeleteSolarPanelReport(LoginRequiredMixin, View):
+    def get(self, request, id):
+        report = get_object_or_404(SolarPanelReport, id=id)
+        report.delete()
         return redirect("solar_panel:solar_panel_report")
-
-
-# 📄 查看 PDF 页面（inline 显示）
-def view_report_pdf(request, report_id):
-    report = get_object_or_404(SolarPanelReportt, id=report_id)
-
-    buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
-
-    # Title
-    p.setFont("Helvetica-Bold", 20)
-    p.drawCentredString(width / 2, height - 2 * 72 / 2.54, "Solar Panel Monthly Report")
-
-    # Basic Info
-    p.setFont("Helvetica", 12)
-    y = height - 3.5 * 72 / 2.54
-    p.drawString(2.5 * 72 / 2.54, y, f"Report ID: {report.id}")
-    y -= 0.8 * 72 / 2.54
-    p.drawString(2.5 * 72 / 2.54, y, f"Month/Year: {report.month}/{report.year}")
-
-    if is_naive(report.generated_time):
-        generated_time = make_aware(report.generated_time)
-    else:
-        generated_time = report.generated_time
-
-    generated_time_local = localtime(generated_time)
-    y -= 0.8 * 72 / 2.54
-    p.drawString(2.5 * 72 / 2.54, y, f"Generated Time: {generated_time_local.strftime('%Y-%m-%d %H:%M:%S')}")
-
-    # Records Summary
-    records = SolarPanelRecord.objects.filter(
-        recorded_time__year=report.year, recorded_time__month=report.month
-    )
-
-    total_panels = records.values("solar_panel").distinct().count()
-    total_records = records.count()
-
-    status_count = {
-        1: records.filter(status=1).count(),
-        2: records.filter(status=2).count(),
-        3: records.filter(status=3).count(),
-        4: records.filter(status=4).count(),
-        5: records.filter(status=5).count(),
-    }
-
-    y -= 1.5 * 72 / 2.54
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(2.5 * 72 / 2.54, y, "Summary")
-
-    p.setFont("Helvetica", 12)
-    y -= 0.8 * 72 / 2.54
-    p.drawString(3 * 72 / 2.54, y, f"Total Solar Panels Monitored: {total_panels}")
-    y -= 0.6 * 72 / 2.54
-    p.drawString(3 * 72 / 2.54, y, f"Total Records Collected: {total_records}")
-
-    y -= 1.0 * 72 / 2.54
-    p.drawString(3 * 72 / 2.54, y, f"Status Counts:")
-    y -= 0.6 * 72 / 2.54
-    p.drawString(4 * 72 / 2.54, y, f"Normal: {status_count[1]}")
-    y -= 0.5 * 72 / 2.54
-    p.drawString(4 * 72 / 2.54, y, f"Temperature High: {status_count[2]}")
-    y -= 0.5 * 72 / 2.54
-    p.drawString(4 * 72 / 2.54, y, f"Temperature Too High: {status_count[3]}")
-    y -= 0.5 * 72 / 2.54
-    p.drawString(4 * 72 / 2.54, y, f"Stopped: {status_count[4]}")
-    y -= 0.5 * 72 / 2.54
-    p.drawString(4 * 72 / 2.54, y, f"On Fire: {status_count[5]}")
-
-    # Footer
-    p.setFont("Helvetica-Oblique", 10)
-    p.drawRightString(width - 2 * 72 / 2.54, 1.5 * 72 / 2.54, "Page 1")
-
-    p.showPage()
-    p.save()
-
-    buffer.seek(0)
-
-    download = request.GET.get('download')
-    if download == "1":
-        return FileResponse(buffer, as_attachment=True, filename=f"SolarPanelReport-{report.month}-{report.year}.pdf")
-    else:
-        return FileResponse(buffer, as_attachment=False, filename=f"SolarPanelReport-{report.month}-{report.year}.pdf")
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -576,16 +500,29 @@ class ReceiveSolarPanel(View):
 
         data = request.POST.get("solar_panel_json")
         image = request.FILES.get("solar_panel_image")
+        if image:
+            if not image.content_type.startswith("image/"):
+                return HttpResponse("Invalid image format. Please upload jpg/jpeg/png format.")
+            if image.size > 100 * 1024 * 1024:
+                return HttpResponse("Image too large. Maximum size is 100MB.")
+        else:
+            return HttpResponse("Image not found.")
 
         data = json.loads(data)
 
-        all_detect_result = detect_solar_panel(image)
+        detect_results = detect_solar_panel_with_image(image)
         detect_result = None
-        for key, value in all_detect_result.items():
+        path = None
+        for key, value in detect_results.items():
             if key == "detections":
                 detect_result = value
+            if key == "result_path":
+                path = value
 
-        detect_label = ["bird_drop", "clean", "damage", "dusty"]
+        path = path.split("solar_panel_monitoring_system_project")[1]
+        path = path.replace("\\", "/")
+
+        # detect_label = ["Bird_drop", "Clean", "Damage", "Dusty"]
         result_label = []
 
         for result in detect_result:
@@ -594,15 +531,26 @@ class ReceiveSolarPanel(View):
         damage = 0
         cleanliness = 1
 
-        if "clean" in result_label and not "bird_drop" in result_label and not "dusty" in result_label:
+        if "Clean" in result_label and not "Bird_Drop" in result_label and not "Dusty" in result_label:
             cleanliness = 1
-        if "dusty" in result_label and not "bird_drop" in result_label and not "clean" in result_label:
+        if "Dusty" in result_label and not "Bird_Drop" in result_label and not "Clean" in result_label:
             cleanliness = 2
-        if "bird_drop" in result_label and not "clean" in result_label:
+        if "Bird_Drop" in result_label and not "Clean" in result_label:
             cleanliness = 3
-        if "damage" in result_label:
+        if "Damage" in result_label:
             damage = 1
 
+        video = request.FILES.get("solar_panel_video")
+        if video:
+            if not video.content_type.startswith("video/"):
+                return HttpResponse("Invalid video format. Please upload mp4 video.")
+            output_path = detect_solar_panel_with_video(video)["video_path"]
+            output_path = output_path.split("solar_panel_monitoring_system_project")[1]
+            output_path = output_path.replace("\\", "/")
+            solar_panel_detect_video = SolarPanelDetectVideo(video=output_path, recorded_time=datetime.datetime.now())
+            solar_panel_detect_video.save()
+
+        solar_panel_id = data["id"]
         solar_panel = SolarPanel.objects.filter(id=data["id"]).first()
 
         if not solar_panel:
@@ -612,51 +560,46 @@ class ReceiveSolarPanel(View):
             solar_panel_id=data["id"]
         ).first()
 
-        status = data["status"] if data["status"] < 6 else 6
         # damage = data["damage"] if data["damage"] < 2 else 2
         # cleanliness = data["cleanliness"] if data["cleanliness"] < 4 else 4
+        # solar_panel = SolarPanel.objects.filter(id=data["id"]).first()
+        # if solar_panel:
+        #     warning_solar_panel = WarningSolarPanel.objects.filter(solar_panel_id=data["id"]).first()
+        #     if warning_solar_panel:
+        #         if status == 2 or status == 3 or status == 5:
+        #             warning_solar_panel.status = status
+        #             warning_solar_panel.temperature = temperature
+        #             warning_solar_panel.save()
+        #         else:
+        #             warning_solar_panel.delete()
+        #     else:
+        #         if status == 2 or status == 3 or status == 5:
+        #             warning_solar_panel = WarningSolarPanel(solar_panel_id=data["id"], status=status,
+        #                                                     temperature=temperature)
+        #             warning_solar_panel.save()
+
         record = SolarPanelRecord(
             solar_panel_id=data["id"],
-            temperature=data["temperature"],
-            status=status,
             damage=damage,
             cleanliness=cleanliness,
             recorded_time=datetime.time,
+            image=path,
         )
         record.save()
 
         if old_monitoring:
-            old_monitoring.temperature = data["temperature"]
-            old_monitoring.status = status
             old_monitoring.damage = damage
             old_monitoring.cleanliness = cleanliness
+            old_monitoring.image = path
             old_monitoring.save()
         else:
-
             new_monitoring = SolarPanelMonitoring(
                 solar_panel_id=data["id"],
-                temperature=data["temperature"],
-                status=status,
                 damage=damage,
                 cleanliness=cleanliness,
+                image=path,
             )
             new_monitoring.save()
-
-        all_zone_avg_tmp = SolarPanelMonitoring.objects.values('solar_panel__zone').annotate(avg_tmp=Avg("temperature"))
-        recorded_time = datetime.datetime.now()
-        avg_tmp_by_time = AVGTemperatureByTime(recorded_time=recorded_time)
-        for zone_avg_tmp in all_zone_avg_tmp:
-            zone = None
-            avg_tmp = None
-            for key, value in zone_avg_tmp.items():
-                if key == "solar_panel__zone":
-                    zone = value
-                if key == "avg_tmp":
-                    avg_tmp = value
-            avg_tmp_by_time.save()
-            avg_tmp_by_zone = AVGTemperatureByZone(zone=zone, avg_temperature=avg_tmp,
-                                                   AVGTemperatureByTime_id=avg_tmp_by_time.id)
-            avg_tmp_by_zone.save()
 
         return HttpResponse("Solar Panel Receive Successful!")
 
@@ -664,8 +607,7 @@ class ReceiveSolarPanel(View):
 class DeleteSolarPanelRecord(LoginRequiredMixin, View):
 
     def get(self, request, id):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
+
         user = request.user
         if not user.is_superuser:
             return redirect("login:login")
@@ -674,3 +616,15 @@ class DeleteSolarPanelRecord(LoginRequiredMixin, View):
             return hint_message(request, "Solar Panel Record Not Found.", "solar_panel:solar_panel_record")
         solar_panel_record.delete()
         return redirect("solar_panel:solar_panel_record")
+
+
+class DeleteSolarPanelReport(LoginRequiredMixin, View):
+    def get(self, request, id):
+        user = request.user
+        if not user.is_superuser:
+            return redirect("login:login")
+        solar_panel_report = SolarPanelReport.objects.filter(id=id).first()
+        if not solar_panel_report:
+            return hint_message(request, "Solar Panel Report Not Found.", "solar_panel:solar_panel_report")
+        solar_panel_report.delete()
+        return redirect("solar_panel:solar_panel_report")

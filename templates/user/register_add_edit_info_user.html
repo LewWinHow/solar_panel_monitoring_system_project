@@ -155,7 +155,7 @@
                                 <div class="mb-3">
                                     <label class="form-label">Current Profile</label>
                                     <div class="input-group">
-                                        <img src="{% if user.profile %}{{ user.profile }}{% else %}https://cdn-icons-png.flaticon.com/512/6522/6522516.png{% endif %}" alt="Current Photo" class="img-thumbnail"
+                                        <img src="{% if user.profile %}{{ user.profile.url }}{% else %}https://cdn-icons-png.flaticon.com/512/6522/6522516.png{% endif %}" alt="Current Photo" class="img-thumbnail"
                                              style="max-width: 150px;">
                                     </div>
                                 </div>

@@ -21,6 +21,11 @@ urlpatterns = [
 
     # Login Report
     path("login_report/", views.ReportOfLogin.as_view(), name="login_report"),
+    path("login_report/<int:page>", views.ReportOfLogin.as_view(), name="login_report"),
+    path("delete_login_report/<int:id>", views.DeleteLoginReport.as_view(), name="delete_login_report"),
+
+    # View Report PDF
+    path("login_report/view_pdf/<int:id>/<int:download>", views.LoginReportPDFView.as_view(), name="view_login_report_pdf"),
 
     # Blacklist
     path("login_blacklist/<int:id>", views.LoginBlacklist.as_view(), name="login_blacklist"),

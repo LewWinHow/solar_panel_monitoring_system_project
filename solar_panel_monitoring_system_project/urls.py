@@ -24,9 +24,6 @@ from django.views.generic import RedirectView
 urlpatterns = [
     path("", include("login.urls")),
     path("", RedirectView.as_view(url="/login/", permanent=False)),
-    # path("", include("administration.urls")),
-    # path("", include("supervisor.urls")),
-    # path("", include("viewer.urls")),
     path("", include("solar_panel.urls")),
     path("", include("user.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

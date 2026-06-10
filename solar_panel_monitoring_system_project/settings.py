@@ -55,6 +55,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "my_middleware.my_middleware.VerifyNetworkAddress",
 ]
 
 ROOT_URLCONF = "solar_panel_monitoring_system_project.urls"
@@ -80,20 +81,28 @@ WSGI_APPLICATION = "solar_panel_monitoring_system_project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.mysql",
+#         "NAME": "solar_panel_monitoring_system_project",
+#         "HOST": "127.0.0.1",
+#         "PORT": "3306",
+#         "USER": "root",
+#         "PASSWORD": "985110",
+#         "POOL_OPTIONS": {
+#             "POOL_SIZE": 10,
+#             "MAX_OVERFLOW": 30,
+#         },
+#     }
+# }
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": "solar_panel_monitoring_system_project",
-        "HOST": "127.0.0.1",
-        "PORT": "3306",
-        "USER": "root",
-        "PASSWORD": "985110",
-        "POOL_OPTIONS": {
-            "POOL_SIZE": 10,
-            "MAX_OVERFLOW": 30,
-        },
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
 
 
 # Password validation
@@ -130,7 +139,10 @@ USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -145,7 +157,7 @@ EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = "xiaohao6070@gmail.com"
-EMAIL_HOST_PASSWORD = "xlzr hbuv czor ivxv"
+EMAIL_HOST_PASSWORD = "kzaj zvse grwo hvvr"
 
 SESSION_COOKIE_AGE = 24 * 60 * 60
 AUTH_USER_MODEL = "user.User"

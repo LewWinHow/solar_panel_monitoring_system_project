@@ -1,22 +1,13 @@
-import os
-import re
-import uuid
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.files.storage import FileSystemStorage
-from django.core.paginator import Paginator
 from django.core.validators import validate_email
-from django.db.models import Q
-from django.shortcuts import render, redirect
-from django.template.context_processors import request
+from django.shortcuts import redirect
 from django.views import View
-from getmac import get_mac_address
-from solar_panel_monitoring_system_project import settings
-from user.models import User
-from general_func import *
+from utils.general_function import *
+
 
 class Register(View):
     def get(self, request):
-        return render(request, "user/register_add_edit_info_user.html", {"permission":None,"page":"register"})
+        return render(request, "user/register_add_edit_info_user.html", {"permission": None, "page": "register"})
 
     def post(self, request):
         username = request.POST.get("username") or None
@@ -57,7 +48,7 @@ class Register(View):
             return verify_image(request, profile, image_url, "login:register")
 
         if profile:
-            fs = FileSystemStorage()
+            fs = FileSystemStorage(location='media/profile', base_url='/media/profile/')
             image_new_name = f"{uuid.uuid4()}.{profile.name.split('.')[-1]}"
             filename = fs.save(image_new_name, profile)
             image_url = fs.url(filename)
@@ -79,11 +70,11 @@ class Register(View):
         user.save()
         return hint_message(request, "Register successful!", "login:login")
 
+
 class UserList(LoginRequiredMixin, View):
 
-    def get(self, request,page=1):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
+    def get(self, request, page=1):
+
 
         user = request.user
         permission = 1 if user.is_superuser else (2 if not user.is_superuser and user.is_staff else 3)
@@ -91,47 +82,97 @@ class UserList(LoginRequiredMixin, View):
             return redirect("login:login")
 
         user_list = User.objects.all()
-        paginator = Paginator(user_list, 10)
-        page = page
-        try:
-            user_list = paginator.page(page)
-        except PageNotAnInteger:
-            user_list = paginator.page(1)
-        except EmptyPage:
-            user_list = paginator.page(paginator.num_pages)
-        is_paginated = True if paginator.num_pages > 1 else False
-        return render(request, "user/user_list.html", {"permission":permission,"user_list": user_list,"is_paginated":is_paginated})
+        user_list = get_data_by_page(user_list, page)[0]
+        is_paginated = get_data_by_page(user_list, page)[1]
+        return render(request, "user/user_list.html",
+                      {"permission": permission, "user_list": user_list, "is_paginated": is_paginated})
 
-    def post(self, request):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
+    def post(self, request, page=1):
+
 
         user = request.user
         permission = 1 if user.is_superuser else (2 if not user.is_superuser and user.is_staff else 3)
         if not user.is_superuser or not user.is_staff:
             return redirect("login:login")
 
-        users = User.objects.all()
+        filter_select = request.POST.get("filter_select") or None
+        filter_input = request.POST.get("filter_input") or None
+        filter_input_second = request.POST.get("filter_input_second") or None
+        gender_select = request.POST.get("gender_select") or None
+        supervisor_select = request.POST.get("supervisor_select") or None
+        staff_select = request.POST.get("staff_select") or None
+        status_select = request.POST.get("status_select") or None
+        user_list = User.objects.all()
+        order_by = request.POST.get("order_by") or None
 
-        return render(request, "user/user_list.html", {"permission":permission,"users": users})
+        if filter_select:
+            if filter_select == "1":
+                user_list = User.objects.all()
+            elif filter_select == "2":
+                if filter_input:
+                    user_list = User.objects.filter(id=filter_input).all()
+            elif filter_select == "3":
+                if filter_input:
+                    user_list = User.objects.filter(username__contains=filter_input).all()
+            elif filter_select == "4":
+                if filter_input:
+                    full_name = filter_input.strip().split()
+                    if len(full_name) == 1:
+                            Q(first_name__icontains=full_name[0]) | Q(last_name__icontains=full_name[0])
+                    elif len(filter_input) >= 2:
+                            Q(first_name__icontains=full_name[0]) | Q(last_name__icontains=full_name[-1])
+            elif filter_select == "5":
+                if gender_select:
+                    user_list = User.objects.filter(gender=gender_select).all()
+            elif filter_select == "6":
+                if supervisor_select:
+                    user_list = User.objects.filter(is_superuser=supervisor_select).all()
+            elif filter_select == "7":
+                if staff_select:
+                    user_list = User.objects.filter(is_staff=staff_select).all()
+            elif filter_select == "8":
+                if status_select:
+                    user_list = User.objects.filter(is_active=status_select).all()
+            elif filter_select == "9":
+                if filter_input and filter_input_second:
+                    user_list = User.objects.filter(date_joined__gte=filter_input,
+                                                                  date_joined__lte=filter_input_second).all()
+                elif filter_input and filter_input_second is None:
+                    user_list = User.objects.filter(date_joined__gte=filter_input).all()
+                elif filter_input is None and filter_input_second:
+                    user_list = User.objects.filter(
+                        date_joined__lte=filter_input_second).all()
+
+        if order_by and order_by == "2":
+            user_list = user_list.order_by("-id")
+        else:
+            user_list = user_list.order_by("id")
+
+        user_list = get_data_by_page(user_list, page)[0]
+        is_paginated = get_data_by_page(user_list, page)[1]
+        return render(request, "user/user_list.html",
+                      {"permission": permission, "user_list": user_list,
+                       "is_paginated": is_paginated, "filter_select": filter_select, "filter_input": filter_input,
+                       "filter_input_second": filter_input_second, "gender_select": gender_select,
+                       "supervisor_select": supervisor_select, "staff_select": staff_select,
+                       "status_select": status_select,
+                       "order_by": order_by})
 
 
 class AddUser(LoginRequiredMixin, View):
 
     def get(self, request):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
+
 
         user = request.user
-        permission  = 1 if user.is_superuser else (2 if not user.is_superuser and user.is_staff else 3)
+        permission = 1 if user.is_superuser else (2 if not user.is_superuser and user.is_staff else 3)
         if not user.is_superuser:
             return redirect("login:login")
 
-        return render(request, "user/register_add_edit_info_user.html", {"permission":permission,"page":"add_user"})
+        return render(request, "user/register_add_edit_info_user.html", {"permission": permission, "page": "add_user"})
 
     def post(self, request):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
+
 
         user = request.user
         if not user.is_superuser:
@@ -180,7 +221,7 @@ class AddUser(LoginRequiredMixin, View):
             return verify_image(request, profile, "user:add_user")
 
         if profile:
-            fs = FileSystemStorage()
+            fs = FileSystemStorage(location='media/profile', base_url='/media/profile/')
             image_new_name = f"{uuid.uuid4()}.{profile.name.split('.')[-1]}"
             filename = fs.save(image_new_name, profile)
             image_url = fs.url(filename)
@@ -208,8 +249,7 @@ class AddUser(LoginRequiredMixin, View):
 class DeleteUser(LoginRequiredMixin, View):
 
     def get(self, request, id):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
+
 
         user = request.user
         if not user.is_superuser:
@@ -227,8 +267,7 @@ class DeleteUser(LoginRequiredMixin, View):
 class UserSatus(LoginRequiredMixin, View):
 
     def get(self, request, id):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
+
 
         user = request.user
         if not user.is_superuser:
@@ -251,8 +290,7 @@ class UserSatus(LoginRequiredMixin, View):
 class EditUser(LoginRequiredMixin, View):
 
     def get(self, request, id):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
+
 
         user = request.user
         permission = 1 if user.is_superuser else (2 if not user.is_superuser and user.is_staff else 3)
@@ -264,11 +302,11 @@ class EditUser(LoginRequiredMixin, View):
         if user is None:
             return hint_message(request, "User not found.", "user:user_list")
 
-        return render(request, "user/register_add_edit_info_user.html", {"permission":permission,"page":"edit_user","user": user})
+        return render(request, "user/register_add_edit_info_user.html",
+                      {"permission": permission, "page": "edit_user", "user": user})
 
     def post(self, request, id):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
+
 
         user = request.user
         if not user.is_superuser:
@@ -327,7 +365,7 @@ class EditUser(LoginRequiredMixin, View):
             return verify_image(request, "user:edit_user", id)
 
         if profile:
-            fs = FileSystemStorage()
+            fs = FileSystemStorage(location='media/profile', base_url='/media/profile/')
             image_new_name = f"{uuid.uuid4()}.{profile.name.split('.')[-1]}"
             filename = fs.save(image_new_name, profile)
             image_url = fs.url(filename)
@@ -353,8 +391,7 @@ class EditUser(LoginRequiredMixin, View):
 class UserInfo(LoginRequiredMixin, View):
 
     def get(self, request):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
+
 
         user = request.user
         id = user.id
@@ -364,11 +401,11 @@ class UserInfo(LoginRequiredMixin, View):
         if user is None:
             return hint_message(request, "User not found.", "login:login")
 
-        return render(request, "user/register_add_edit_info_user.html", {"permission":permission,"page":"user_info","user": user})
+        return render(request, "user/register_add_edit_info_user.html",
+                      {"permission": permission, "page": "user_info", "user": user})
 
     def post(self, request):
-        if verify_network_address(request) is not True:
-            return verify_network_address(request)
+
 
         user = request.user
         id = request.user.id

@@ -1,246 +1,342 @@
 {% extends "navigation_bar.html" %}
 {% block content %}
-<head>
-    <title>Solar Panel Monitoring</title>
-    <meta http-equiv="refresh" content="600">
-</head>
-<style>
+    <head>
+        <title>Solar Panel Monitoring</title>
+        <meta http-equiv="refresh" content="600">
+    </head>
+    <style>
 
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f0f2f5;
-        color: #333;
-    }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+        }
 
-    .zone-card {
-        background-color: #ffffff;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        padding: 25px;
-        margin-bottom: 30px;
-        transition: transform 0.3s ease-in-out;
-    }
+        .zone-card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+            margin-bottom: 30px;
+            transition: transform 0.3s ease-in-out;
+        }
 
-    .zone-card:hover {
-        transform: translateY(-5px);
-    }
+        .zone-card:hover {
+            transform: translateY(-5px);
+        }
 
-    .zone-card h4 {
-        color: #2c3e50;
-        font-size: 1.8em;
-        margin-bottom: 20px;
-        border-bottom: 2px solid #e0e0e0;
-        padding-bottom: 10px;
-    }
+        .zone-card h4 {
+            color: #2c3e50;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
 
-    .panel-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 20px;
-    }
+        .panel-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
 
-    .panel-box {
-        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-        border: 1px solid #ced4da;
-        border-radius: 10px;
-        padding: 15px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        transition: all 0.3s ease-in-out;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
+        .panel-box {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 1px solid #ced4da;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
 
-    .panel-box:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-    }
+        .panel-box:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
 
-    .panel-box p {
-        margin: 8px 0;
-        font-size: 0.95em;
-        color: #555;
-    }
+        .panel-box p {
+            margin: 8px 0;
+            font-size: 0.95em;
+            color: #555;
+        }
 
-    .panel-box p strong {
-        color: #333;
-    }
+        .panel-box p strong {
+            color: #333;
+        }
 
-    .status-normal {
-        color: green; /* Green */
-        font-weight: bold;
-    }
+        .status-normal {
+            color: green; /* Green */
+            font-weight: bold;
+        }
 
-    .status-high {
-        color: orange; /* Orange */
-        font-weight: bold;
-    }
+        .status-high {
+            color: orange; /* Orange */
+            font-weight: bold;
+        }
 
-    .status-too-high {
-        color: red; /* Red */
-        font-weight: bold;
-    }
+        .status-too-high {
+            color: red; /* Red */
+            font-weight: bold;
+        }
 
-    .status-stop {
-        color: black; /* Black */
-        font-weight: bold;
-    }
+        .status-stop {
+            color: black; /* Black */
+            font-weight: bold;
+        }
 
-    .status-fire {
-        color: darkred; /* Darker Red */
-        font-weight: bold;
-    }
+        .status-fire {
+            color: darkred; /* Darker Red */
+            font-weight: bold;
+        }
 
-    .status-unknown {
-        color: gray; /* Gray */
-    }
+        .status-unknown {
+            color: gray; /* Gray */
+        }
 
-    .damage-none {
-        color: green; /* Green */
-        font-weight: bold;
-    }
+        .damage-none {
+            color: green; /* Green */
+            font-weight: bold;
+        }
 
-    .damage-yes {
-        color: red; /* Red */
-        font-weight: bold;
-    }
+        .damage-yes {
+            color: red; /* Red */
+            font-weight: bold;
+        }
 
-    .cleanliness-high {
-        color: green; /* Green */
-        font-weight: bold;
-    }
+        .cleanliness-high {
+            color: green; /* Green */
+            font-weight: bold;
+        }
 
-    .cleanliness-medium {
-        color: orange; /* Orange */
-        font-weight: bold;
-    }
+        .cleanliness-medium {
+            color: orange; /* Orange */
+            font-weight: bold;
+        }
 
-    .cleanliness-low {
-        color: red; /* Red */
-        font-weight: bold;
-    }
+        .cleanliness-low {
+            color: red; /* Red */
+            font-weight: bold;
+        }
 
-    .charts {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 30px;
-        margin-top: 40px;
-        margin-bottom: 30px;
-    }
+        .charts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-top: 40px;
+            margin-bottom: 30px;
+        }
 
-    canvas {
-        background: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-radius: 10px;
-        padding: 15px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-        max-width: 100%;
-        height: auto;
-        transition: all 0.3s ease-in-out;
-    }
+        canvas {
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+            max-width: 100%;
+            height: auto;
+            transition: all 0.3s ease-in-out;
+        }
 
-    canvas:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-    }
+        canvas:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
 
-    #currentTime {
-        font-size: 1.2em;
-        color: #2c3e50;
-        font-weight: bold;
-    }
+        #currentTime {
+            font-size: 1.2em;
+            color: #2c3e50;
+            font-weight: bold;
+        }
 
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0,0,0,0.4);
-    }
+        .modal {
+            display: none; /* 初始隐藏 */
+            position: fixed;
+            z-index: 1050; /* 提高z-index确保在最上层 */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* 允许滚动 */
+            background-color: rgba(0, 0, 0, 0.7); /* 半透明黑色背景 */
+            display: flex; /* 使用flexbox居中内容 */
+            align-items: center;
+            justify-content: center;
+        }
 
-    .modal-content {
-        color: white;
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background-color: red;
-        padding: 20px;
-        border: 1px solid #888;
-        width: 400px;
-        height: 300px;
-    }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto; /* 自动边距居中 */
+            padding: 0;
+            border: 1px solid #888;
+            width: auto; /* 宽度自适应 */
+            max-width: 90%; /* 最大宽度 */
+            max-height: 90%; /* 最大高度 */
+            position: relative; /* 相对定位，用于关闭按钮 */
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+            -webkit-animation-name: animatetop;
+            -webkit-animation-duration: 0.4s;
+            animation-name: animatetop;
+            animation-duration: 0.4s;
+            display: flex; /* 使图片在modal-content中居中 */
+            justify-content: center;
+            align-items: center;
+        }
 
-    .close {
-        color: #aaa;
-        float: right;
-        font-size: 28px;
-        font-weight: bold;
-    }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
 
-    .close:hover,
-    .close:focus {
-        color: black;
-        text-decoration: none;
-        cursor: pointer;
-    }
-</style>
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
 
-<h2>Solar Panel Monitoring</h2>
-<p>Current Time: <span id="currentTime"></span></p>
+        /* 动画效果 */
+        @-webkit-keyframes animatetop {
+            from {
+                top: -300px;
+                opacity: 0
+            }
+            to {
+                top: 0;
+                opacity: 1
+            }
+        }
 
-<div id="myModal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3>Warning!!!</h3>
-        <p>Solar Panel is fire</p>
+        @keyframes animatetop {
+            from {
+                top: -300px;
+                opacity: 0
+            }
+            to {
+                top: 0;
+                opacity: 1
+            }
+        }
+
+        /* No Data 模态框的样式 */
+        #display_no_image .modal-content {
+            width: 300px;
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-color: white;
+            color: #333;
+            border-radius: 8px;
+        }
+
+        #display_no_image .modal-content p {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 0;
+        }
+
+    </style>
+
+    <h2>Solar Panel Monitoring</h2>
+    <p>Current Time: <span id="currentTime"></span></p>
+    <script>
+        // 更新本地时间显示
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById("currentTime").textContent = now.toLocaleTimeString();
+        }, 1000);
+
+        function checkAndRefreshEveryTenMinutes() {
+            const now = new Date();
+            const minutes = now.getMinutes();
+            const rounded = Math.floor(minutes / 10) * 10; // 最近的十分钟
+            const periodKey = now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate()
+                + " " + now.getHours() + ":" + rounded;
+
+            const lastRefresh = localStorage.getItem("lastTenMinRefresh");
+
+            if (lastRefresh !== periodKey) {
+                // 没刷新过当前十分钟段，刷新
+                localStorage.setItem("lastTenMinRefresh", periodKey);
+                console.log("⌛ 到时间，刷新页面！", periodKey);
+                location.reload();
+            }
+        }
+
+        // 每 30 秒检查一次（越频繁，越准确）
+        setInterval(checkAndRefreshEveryTenMinutes, 30 * 1000);
+        // 初次加载也检查一次
+        checkAndRefreshEveryTenMinutes();
+    </script>
+    {#    {% if context.warning_solar_panel_list %}#}
+    {#        <div id="myModal" class="modal" style="display: block;">#}
+    {#            <div class="modal-content">#}
+    {#                <span class="close">&times;</span>#}
+    {#                <h3>Warning!!!</h3>#}
+    {#                {% for warning_solar_panel in context.warning_solar_panel_list %}#}
+    {#                    <p>Solar Panel of ID {{ warning_solar_panel.solar_panel_id }},#}
+    {#                        {% if warning_solar_panel.status == 1 %} temperature {{ warning_solar_panel.temperature }}°C is high!!!#}
+    {#                        {% elif warning_solar_panel.status == 2 %}temperature {{ warning_solar_panel.temperature }}°C is too high!!!#}
+    {#                        {% else %}is fire!!!{% endif %}</p>#}
+    {#                {% endfor %}#}
+    {#            </div>#}
+    {#        </div>#}
+    {#    {% endif %}#}
+    <div id="display_image" class="modal" style="display: none;">
+        <div class="modal-content"
+             style="background-color: white; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+            <img id="modalImage" style="display: block; max-width: 100%; max-height: 100%;" src="">
+        </div>
     </div>
-</div>
 
-<button id="modalBtn" style="margin: 10px 0; padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
-    Alert Warning
-</button>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <div id="display_no_image" class="modal" style="display: none;">
+        <div class="modal-content"
+             style="background-color: white; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; height: 150px; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+            <p style="color: #333; font-size: 1.5em; font-weight: bold;">No Data</p>
+        </div>
+    </div>
 
-<script>
-    function updateTime() {
-        const now = new Date();
-        document.getElementById('currentTime').textContent = now.toLocaleString();
-    }
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
-    updateTime();
-    setInterval(updateTime, 1000);
+    <script>
 
-    var modal = document.getElementById("myModal");
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleString();
+        }
 
-    var btn = document.getElementById("modalBtn");
+        updateTime();
+        setInterval(updateTime, 1000);
 
-    var span = document.getElementsByClassName("close")[0];
+        var modal = document.getElementById("myModal");
+        var span = document.getElementsByClassName("close")[0];
 
-    btn.onclick = function() {
-        modal.style.display = "block";
-    }
-
-    span.onclick = function() {
-        modal.style.display = "none";
-    }
-
-    window.onclick = function(event) {
-        if (event.target == modal) {
+        span.onclick = function () {
             modal.style.display = "none";
         }
-    }
-</script>
 
-    {% if context.all_zone_monitoring %}
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    </script>
+
+    {% if monitoring_by_zone_list %}
         <div class="charts">
-            <div style="width: 400px; height: 400px;">
-                <canvas id="statusPieChart"></canvas>
-            </div>
+            {% if solar_panel_detect_video %}
+                <video width="650" height="400" autoplay loop muted>
+                    <source src="{{ solar_panel_detect_video }}" type="video/mp4">
+                </video>
+            {% endif %}
             <div style="width: 400px; height: 400px;">
                 <canvas id="damagePieChart"></canvas>
             </div>
@@ -266,168 +362,183 @@
         }
 
 
-    function pieChart(CTX, labels, data, color, title) {
+        function pieChart(CTX, labels, data, color, title) {
 
-        new Chart(CTX, {
-            type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: data,
-                    backgroundColor: color,
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: title
-                    },
-                    datalabels: {
-                        formatter: (value, ctx) => {
-                            if (value === 0) {
-                                return '';
-                            }
-                            let sum = 0;
-                            let dataArr = ctx.chart.data.datasets[0].data;
-                            dataArr.map(data => {
-                                sum += data;
-                            });
-                            let percentage = (value * 100 / sum).toFixed(2) + '%';
-                            return percentage;
+            new Chart(CTX, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: color,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: title
                         },
-                        color: '#fff',
-                        font: {
-                            weight: 'bold',
-                            size: 14
+                        datalabels: {
+                            formatter: (value, ctx) => {
+                                if (value === 0) {
+                                    return '';
+                                }
+                                let sum = 0;
+                                let dataArr = ctx.chart.data.datasets[0].data;
+                                dataArr.map(data => {
+                                    sum += data;
+                                });
+                                let percentage = (value * 100 / sum).toFixed(2) + '%';
+                                return percentage;
+                            },
+                            color: '#fff',
+                            font: {
+                                weight: 'bold',
+                                size: 14
+                            }
                         }
                     }
-                }
-            },
-            plugins: [ChartDataLabels]
-        });
-    }
-
-        const statusCTX = document.getElementById('statusPieChart').getContext('2d');
-        const statusLabels = ['Normal', 'Temperature High', 'Temperature Too High', 'Stop Run', 'Fire', 'Unknown']
-        const statusColors = ["green","orange","red","black","darkred","gray"]
-        const statusTitle = 'Solar Panel Status'
-        const statusData = []
-        const statusTags = []
-        const statusCount = []
-        const statusDic = {}
-        {% for count in context.count_status %}
-        {% for key,value in count.items %}
-            {% if key == "status" %}
-                statusTags.push({{ value }})
-            {% endif %}
-            {% if key == "count" %}
-                statusCount.push({{ value }})
-            {% endif %}
-        {% endfor %}
-        {% endfor %}
+                },
+                plugins: [ChartDataLabels]
+            });
+        }
 
         const damageCTX = document.getElementById('damagePieChart').getContext('2d');
-        const damageLabels = ['None', 'Yes', 'Unknown']
-        const damageColors = ['green', 'red', 'gray']
+        const damageLabels = ['None', 'Yes']
+        const damageColors = ['green', 'red']
         const damageTile = 'Solar Panel Damage'
         const damageData = []
         const damageTags = []
         const damageCount = []
         const damageDic = {}
-        {% for count in context.count_damage %}
-        {% for key,value in count.items %}
-            {% if key == "damage" %}
-                damageTags.push({{ value }})
-            {% endif %}
-            {% if key == "count" %}
-                damageCount.push({{ value }})
-            {% endif %}
-        {% endfor %}
+        {% for count in count_damage %}
+            {% for key,value in count.items %}
+                {% if key == "damage" %}
+                    damageTags.push({{ value }})
+                {% endif %}
+                {% if key == "count" %}
+                    damageCount.push({{ value }})
+                {% endif %}
+            {% endfor %}
         {% endfor %}
 
         const cleanlinessCTX = document.getElementById('cleanlinessPieChart').getContext('2d');
-        const cleanlinessLabels = ['Clean', 'Little Dirty', 'Very Dirty', 'Unknown']
-        const cleanlinessColors = ['green', 'orange', 'red', 'gray']
+        const cleanlinessLabels = ['Clean', 'Dusty', 'Bird Drop']
+        const cleanlinessColors = ['green', 'orange', 'red']
         const cleanlinessTitle = 'Solar Panel Cleanliness'
         const cleanlinessData = []
         const cleanlinessTags = []
         const cleanlinessCount = []
         const cleanlinessDic = {}
-        {% for count in context.count_cleanliness %}
-        {% for key,value in count.items %}
-            {% if key == "cleanliness" %}
-                cleanlinessTags.push({{ value }})
-            {% endif %}
-            {% if key == "count" %}
-                cleanlinessCount.push({{ value }})
-            {% endif %}
-        {% endfor %}
+        {% for count in count_cleanliness %}
+            {% for key,value in count.items %}
+                {% if key == "cleanliness" %}
+                    cleanlinessTags.push({{ value }})
+                {% endif %}
+                {% if key == "count" %}
+                    cleanlinessCount.push({{ value }})
+                {% endif %}
+            {% endfor %}
         {% endfor %}
 
-        setData(statusData,statusTags,statusCount,statusDic,1,6)
-        setData(damageData,damageTags,damageCount,damageDic,0,2)
-        setData(cleanlinessData,cleanlinessTags,cleanlinessCount,cleanlinessDic,1,4)
+        setData(damageData, damageTags, damageCount, damageDic, 0, 2)
+        setData(cleanlinessData, cleanlinessTags, cleanlinessCount, cleanlinessDic, 1, 4)
 
-        pieChart(statusCTX,statusLabels,statusData,statusColors,statusTitle)
-        pieChart(damageCTX,damageLabels,damageData,damageColors,damageTile)
-        pieChart(cleanlinessCTX,cleanlinessLabels,cleanlinessData,cleanlinessColors,cleanlinessTitle)
+        pieChart(damageCTX, damageLabels, damageData, damageColors, damageTile)
+        pieChart(cleanlinessCTX, cleanlinessLabels, cleanlinessData, cleanlinessColors, cleanlinessTitle)
     </script>
 
-{% for zone,monitoring_list in context.all_zone_monitoring.items %}
-    <div class="zone-card">
-        <h4>Zone {{ zone }}</h4>
-        <div class="panel-grid">
-            {% for monitoring in monitoring_list %}
-                <div class="panel-box">
-                    <p><strong>ID:</strong> {{ monitoring.solar_panel.id }}</p>
-                    <p><strong>Name:</strong> {{ monitoring.solar_panel.name }}</p>
-                    <p><strong>Temperature:</strong> {{ monitoring.temperature }}°C</p>
-                    <p><strong>Status:</strong>
-                        {% if monitoring.status == 1 %}
-                            <span class="status-normal">Normal</span>
-                        {% elif monitoring.status == 2 %}
-                            <span class="status-high">Temperature High</span>
-                        {% elif monitoring.status == 3 %}
-                            <span class="status-too-high">Temperature Too High</span>
-                        {% elif monitoring.status == 4 %}
-                            <span class="status-stop">Stop</span>
-                        {% elif monitoring.status == 5 %}
-                            <span class="status-fire">Fire</span>
-                        {% else %}
-                            <span class="status-unknown">Unknown</span>
-                        {% endif %}
-                    </p>
-                    <p><strong>Damage:</strong>
-                        {% if monitoring.damage == 0 %}
-                            <span class="damage-none">None</span>
-                        {% elif monitoring.damage == 1 %}
-                            <span class="damage-yes">Yes</span>
-                        {% else %}
-                            <span class="status-unknown">Unknown</span>
-                        {% endif %}
-                    </p>
-                    <p><strong>Cleanliness:</strong>
-                        {% if monitoring.cleanliness == 1 %}
-                            <span class="cleanliness-high">Clean</span>
-                        {% elif monitoring.cleanliness == 2 %}
-                            <span class="cleanliness-medium">Little Dirty</span>
-                        {% elif monitoring.cleanliness == 3 %}
-                            <span class="cleanliness-low">Very Dirty</span>
-                        {% else %}
-                            <span class="status-unknown">Unknown</span>
-                        {% endif %}
-                    </p>
-                </div>
-            {% endfor %}
+    {% for zone,monitoring_list in monitoring_by_zone_list.items %}
+        <div class="zone-card">
+            <h4>Zone {{ zone }}</h4>
+            <div class="panel-grid">
+                {% for monitoring in monitoring_list %}
+                    <div class="panel-box">
+                        <p><strong>ID:</strong> {{ monitoring.solar_panel.id }}</p>
+                        <p><strong>Name:</strong> {{ monitoring.solar_panel.name }}</p>
+                        <p><strong>Damage:</strong>
+                            {% if monitoring.damage == 0 %}
+                                <span class="damage-none">None</span>
+                            {% else %}
+                                <span class="damage-yes">Yes</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Cleanliness:</strong>
+                            {% if monitoring.cleanliness == 1 %}
+                                <span class="cleanliness-high">Clean</span>
+                            {% elif monitoring.cleanliness == 2 %}
+                                <span class="cleanliness-medium">Dusty</span>
+                            {% else %}
+                                <span class="cleanliness-low">Bird Drop</span>
+                            {% endif %}
+                        </p>
+                        <button class="btn btn-primary view-image-btn" onclick="showImage('{{ monitoring.image }}')">
+                            View Image
+                        </button>
+                    </div>
+                    <script>
+                        var displayImage = document.getElementById("display_image");
+                        var displayNoImage = document.getElementById("display_no_image");
+
+                        function showImage(src) {
+                            if (src != null && src != "") {
+                                var modal = document.getElementById("display_image");
+                                var modalContent = modal.querySelector(".modal-content");
+                                var modalImage = document.getElementById("modalImage");
+
+                                modalImage.src = src;
+                                modal.style.display = "block";
+
+                                // Dynamically adjust modal size to fit image
+                                var img = new Image();
+                                img.src = src;
+                                img.onload = function () {
+                                    var vw = window.innerWidth * 0.7;
+                                    var vh = window.innerHeight * 0.7;
+                                    var width = Math.min(img.naturalWidth, vw);
+                                    var height = Math.min(img.naturalHeight, vh);
+                                    // Maintain aspect ratio if one dimension is limited
+                                    if (width / img.naturalWidth < height / img.naturalHeight) {
+                                        height = width * (img.naturalHeight / img.naturalWidth);
+                                    } else {
+                                        width = height * (img.naturalWidth / img.naturalHeight);
+                                    }
+                                    modalContent.style.width = width + 'px';
+                                    modalContent.style.height = height + 'px';
+                                    modalImage.style.width = '100%';
+                                    modalImage.style.height = '100%';
+                                    modalImage.style.objectFit = 'contain';
+
+                                    window.onclick = function (event) {
+                                        if (event.target == displayImage) {
+                                            displayImage.style.display = "none";
+                                        }
+                                    }
+                                };
+                            } else {
+                                var noDataImageModal = document.getElementById("display_no_image");
+                                noDataImageModal.style.display = 'block';
+
+                                window.onclick = function (event) {
+                                    if (event.target == noDataImageModal) {
+                                        noDataImageModal.style.display = "none";
+                                    }
+                                }
+                            }
+
+                        }
+
+                    </script>
+                {% endfor %}
+            </div>
         </div>
-    </div>
-{% endfor %}
-    {% if not context.all_zone_monitoring %}
-    <div class="text-center my-4" style="font-size: 1.5rem;">
-        No Data
-    </div>
-{% endif %}
+    {% endfor %}
+    {% if not monitoring_by_zone_list %}
+        <div class="text-center my-4" style="font-size: 1.5rem;">
+            No Data
+        </div>
+    {% endif %}
 {% endblock %}

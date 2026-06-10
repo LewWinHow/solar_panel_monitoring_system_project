@@ -1,0 +1,95 @@
+.green {
+    position: relative;
+    z-index: 1;
+}
+
+.green::before {
+    content: "";
+    background-color: green;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: -1;
+}
+
+.orange {
+    position: relative;
+    z-index: 1;
+}
+
+.orange::before {
+    content: "";
+    background-color: orange;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: -1;
+}
+
+.red {
+    position: relative;
+    z-index: 1;
+}
+
+.red::before {
+    content: "";
+    background-color: red;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: -1;
+}
+
+.darkred {
+    position: relative;
+    z-index: 1;
+}
+
+.darkred::before {
+    content: "";
+    background-color: darkred;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: -1;
+}
+
+.black {
+    position: relative;
+    z-index: 1;
+}
+
+.black::before {
+    content: "";
+    background-color: black;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: -1;
+}
+
+.gray {
+    position: relative;
+    z-index: 1;
+}
+
+.gray::before {
+    content: "";
+    background-color: gray;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: -1;
+}
