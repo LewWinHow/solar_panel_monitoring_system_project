@@ -245,7 +245,7 @@
                     <tr>
                         <td>{{ user.id }}</td>
                         <td>
-                            <img src="{% if user.profile %}{{ user.profile.url }}{% else %}https://cdn-icons-png.flaticon.com/512/6522/6522516.png{% endif %}"
+                            <img src="{% if user.profile %}{{ user.profile }}{% else %}https://cdn-icons-png.flaticon.com/512/6522/6522516.png{% endif %}"
                                  alt="Profile" width="50" height="50">
                         </td>
                         <td>{{ user.username }}</td>
