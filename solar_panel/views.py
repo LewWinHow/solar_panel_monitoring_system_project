@@ -27,7 +27,6 @@ from solar_panel.models import (
 
 from utils.general_function import *
 from ai_model.detect_solar_panel_model.detect_solar_panel_with_image import detect_solar_panel_with_image
-from ai_model.detect_solar_panel_model.detect_solar_panel_with_video import detect_solar_panel_with_video
 from solar_panel.models import SolarPanel
 import os
 
@@ -540,16 +539,6 @@ class ReceiveSolarPanel(View):
         if "Damage" in result_label:
             damage = 1
 
-        video = request.FILES.get("solar_panel_video")
-        if video:
-            if not video.content_type.startswith("video/"):
-                return HttpResponse("Invalid video format. Please upload mp4 video.")
-            output_path = detect_solar_panel_with_video(video)["video_path"]
-            output_path = output_path.split("solar_panel_monitoring_system_project")[1]
-            output_path = output_path.replace("\\", "/")
-            solar_panel_detect_video = SolarPanelDetectVideo(video=output_path, recorded_time=datetime.datetime.now())
-            solar_panel_detect_video.save()
-
         solar_panel_id = data["id"]
         solar_panel = SolarPanel.objects.filter(id=data["id"]).first()
 
@@ -559,24 +548,6 @@ class ReceiveSolarPanel(View):
         old_monitoring = SolarPanelMonitoring.objects.filter(
             solar_panel_id=data["id"]
         ).first()
-
-        # damage = data["damage"] if data["damage"] < 2 else 2
-        # cleanliness = data["cleanliness"] if data["cleanliness"] < 4 else 4
-        # solar_panel = SolarPanel.objects.filter(id=data["id"]).first()
-        # if solar_panel:
-        #     warning_solar_panel = WarningSolarPanel.objects.filter(solar_panel_id=data["id"]).first()
-        #     if warning_solar_panel:
-        #         if status == 2 or status == 3 or status == 5:
-        #             warning_solar_panel.status = status
-        #             warning_solar_panel.temperature = temperature
-        #             warning_solar_panel.save()
-        #         else:
-        #             warning_solar_panel.delete()
-        #     else:
-        #         if status == 2 or status == 3 or status == 5:
-        #             warning_solar_panel = WarningSolarPanel(solar_panel_id=data["id"], status=status,
-        #                                                     temperature=temperature)
-        #             warning_solar_panel.save()
 
         record = SolarPanelRecord(
             solar_panel_id=data["id"],

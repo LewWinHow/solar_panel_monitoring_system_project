@@ -1,243 +1,88 @@
 # Solar Panel Monitoring System
 
-## Overview
-This is a Django-based web application for monitoring solar panels. The system provides features for user management, solar panel tracking, AI-powered damage detection, and comprehensive reporting capabilities.
+A Django web application for managing solar panel installations, viewing incoming inspection data, detecting visible panel conditions with YOLO, and reviewing historical records and monthly reports.
 
 ## Features
-- **User Management**: Registration, authentication, and role-based access control
-- **Solar Panel Monitoring**: Real-time monitoring of solar panel status
-- **AI Detection**: Image and video-based solar panel damage detection using YOLO model
-- **Reporting**: Automated monthly reports for login activities and solar panel status
-- **Security**: IP blacklisting, bot detection, and brute force protection
-- **Email Integration**: Password reset via email verification
 
-## Technology Stack
-- **Backend**: Django 5.2.1
-- **Database**: SQLite (default), MySQL support available
-- **Frontend**: HTML/CSS/JavaScript with Django templates
-- **AI Model**: YOLO-based solar panel detection model
-- **PDF Generation**: ReportLab for PDF report generation
-- **Email**: SMTP integration for password reset functionality
+- **User accounts:** Registration, login, logout, password recovery by email verification, profile management, and role-based access for administrators, staff, and regular users.
+- **Panel management:** Create and edit panel entries with zone, position, and active status. Search and filter panel information and inspection records.
+- **Monitoring:** View the latest status of active panels grouped by zone, including damage and cleanliness summaries.
+- **AI inspection:** Run YOLO detection on uploaded images for damage, clean, dusty, and bird-dropping conditions. Annotated results are saved under `media/detect_solar_panel_result/`.
+- **Inspection history:** Store panel status snapshots with images and timestamps, then browse and filter historical records.
+- **Reports:** View monthly panel and login reports and render them as PDFs.
+- **Login protection:** Record login attempts and client details, identify likely bots, count failed attempts, and block blacklisted IP addresses through middleware.
 
-## Installation
+## Main Components
 
-### Prerequisites
-- Python 3.8+
-- pip package manager
-- Virtual environment (recommended)
+- `login/` — authentication, password recovery, login history, IP blacklist, and login reports
+- `user/` — custom user model, registration, profiles, and user administration
+- `solar_panel/` — panel inventory, monitoring snapshots, inspection history, and solar panel reports
+- `ai_model/detect_solar_panel_model/` — YOLO image detection helper and model weights
+- `utils/` — validation, pagination, PDF generation, email delivery, and monthly report helpers
+- `templates/` and `static/` — Django pages and styles
+- `my_middleware/` — IP blacklist checks for incoming requests
+- `media/` — uploaded profiles and generated inspection images
+- `db.sqlite3` — local SQLite database
 
-### Setup Instructions
+## Test Account
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd solar_panel_monitoring_system_project
-   ```
+For local testing:
 
-2. **Create and activate virtual environment**
-   ```bash
-   python -m venv venv
-   # On Windows
-   venv\Scripts\activate
-   # On macOS/Linux
-   source venv/bin/activate
-   ```
+- Username: `test`
+- Password: `(Test123)`
+## Requirements
 
-3. **Install dependencies**
-   ```bash
-   pip install django
-   pip install reportlab
-   pip install getmac
-   pip install user-agents
-   pip install Pillow
-   # Add other required packages as needed
-   ```
+The project uses Django 5.2 and SQLite by default. Detection and report features also rely on packages such as Ultralytics, PyTorch, OpenCV, NumPy, Pillow, ReportLab, `getmac`, and `user-agents`. Install package versions compatible with your Python and CUDA setup; the repository does not include a dependency lock file.
 
-4. **Database setup**
-   ```bash
-   python manage.py makemigrations
-   python manage.py migrate
-   ```
+The image detector currently contains machine-specific paths for the YOLO weights and media output directory; update these paths for your environment before using image detection.
 
-5. **Create superuser**
-   ```bash
-   python manage.py createsuperuser
-   ```
+## Run Locally
 
-6. **Run the development server**
-   ```bash
-   python manage.py runserver
-   ```
+From the project directory, create and activate a virtual environment, install Django and the packages required by the features you plan to run, then apply migrations and start the server:
 
-7. **Access the application**
-   Open your browser and navigate to `http://127.0.0.1:8000/`
-
-## Supervisor Login Credentials
-
-For administrative access, you can use the following supervisor account:
-
-- **Username**: `lewwinhow`
-- **Password**: `(XiaoHao6070)`
-
-⚠️ **Security Note**: Please change these default credentials after first login in production environments.
-
-## Project Structure
-
-```
-solar_panel_monitoring_system_project/
-├── ai_model/                 # AI detection models
-│   └── detect_solar_panel_model/
-├── login/                    # Authentication module
-├── solar_panel/              # Solar panel management
-├── user/                     # User management
-├── utils/                    # Utility functions
-├── my_middleware/            # Custom middleware
-├── templates/                # HTML templates
-├── static/                   # Static files (CSS, JS)
-├── media/                    # Uploaded files and detection results
-├── solar_panel_monitoring_system_project/  # Main project settings
-├── manage.py                 # Django management script
-└── db.sqlite3                # SQLite database
-```
-
-## Key Modules
-
-### 1. Authentication System (`login/`)
-- User login/logout functionality
-- Password reset with email verification
-- Login attempt tracking and IP blacklisting
-- Bot detection and prevention
-
-### 2. User Management (`user/`)
-- User registration and profile management
-- Role-based permissions (superuser, staff, regular user)
-- User list with filtering and pagination
-
-### 3. Solar Panel Management (`solar_panel/`)
-- Solar panel information management
-- Real-time monitoring dashboard
-- Damage and cleanliness detection
-- Historical records and reporting
-
-### 4. AI Detection (`ai_model/`)
-- Image-based solar panel defect detection
-- Video processing for continuous monitoring
-- Results storage and visualization
-
-## API Endpoints
-
-### Authentication
-- `POST /login/` - User login
-- `GET /logout/` - User logout
-- `POST /forgot_password/` - Request password reset
-- `POST /verification_code/` - Verify reset code
-- `POST /reset_password/` - Reset password
-
-### Solar Panel
-- `GET /solar_panel_info/` - View solar panel information
-- `POST /add_solar_panel/` - Add new solar panel
-- `POST /edit_solar_panel/<id>/` - Edit solar panel details
-- `GET /delete_solar_panel/<id>/` - Delete solar panel
-- `GET /monitoring/` - Real-time monitoring dashboard
-
-### Reports
-- `GET /login_report/` - View login reports
-- `GET /solar_panel_report/` - View solar panel reports
-- `GET /login_report_pdf/<id>/` - Download login report as PDF
-- `GET /solar_panel_report_pdf/<id>/` - Download solar panel report as PDF
-
-## Configuration
-
-### Email Settings
-The system uses Gmail SMTP for email functionality. Update the following in `settings.py`:
-```python
-EMAIL_HOST_USER = "your_email@gmail.com"
-EMAIL_HOST_PASSWORD = "your_app_password"
-```
-
-### Database Configuration
-By default, the system uses SQLite. To use MySQL, uncomment the MySQL configuration in `settings.py` and update the connection parameters.
-
-### Allowed Hosts
-Update `ALLOWED_HOSTS` in `settings.py` for production deployment:
-```python
-ALLOWED_HOSTS = ["your-domain.com", "localhost", "127.0.0.1"]
-```
-
-## Security Features
-
-- **IP Blacklisting**: Automatic blocking of suspicious IP addresses
-- **Brute Force Protection**: Account lockout after multiple failed login attempts
-- **Bot Detection**: Identification and blocking of automated bots
-- **CSRF Protection**: Built-in Django CSRF protection
-- **Session Management**: Secure session handling with configurable timeout
-
-## Reporting System
-
-The system automatically generates monthly reports for:
-- Login activities (successful/failed attempts, blacklisted IPs)
-- Solar panel status (damage, cleanliness, maintenance needs)
-
-Reports can be viewed online or downloaded as PDF files.
-
-## Development
-
-### Running Tests
 ```bash
-python manage.py test
-```
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# macOS/Linux
+source .venv/bin/activate
 
-### Creating Migrations
-```bash
-python manage.py makemigrations
+pip install "Django>=5.2,<5.3" ultralytics opencv-python numpy Pillow reportlab getmac user-agents
 python manage.py migrate
+python manage.py runserver 127.0.0.1:8000
 ```
 
-### Collecting Static Files
-```bash
-python manage.py collectstatic
-```
+Open `http://127.0.0.1:8000/`. The application uses the SQLite database at `db.sqlite3`; create an administrator account with `python manage.py createsuperuser` if needed. Image detection requires the model file at the path configured in the detector code. GPU use depends on a compatible PyTorch/CUDA installation; image detection currently defaults to CUDA.
 
-## Deployment
+## Application Paths
 
-For production deployment, consider:
-1. Using a production-ready WSGI server (e.g., Gunicorn, uWSGI)
-2. Setting up a reverse proxy (e.g., Nginx)
-3. Using a production database (e.g., PostgreSQL, MySQL)
-4. Enabling HTTPS
-5. Setting `DEBUG = False` in settings.py
-6. Configuring proper logging
+The project is a Django template application. Common paths include:
 
-## Troubleshooting
+- `/login/`, `/logout/`, `/register/` — account access
+- `/forgot_password/`, `/verify_code/`, `/reset_password/` — password recovery
+- `/solar_panel_info/` — panel inventory
+- `/solar_panel_monitoring/` — latest monitoring dashboard
+- `/solar_panel_record/` — inspection history
+- `/solar_panel_report/` and `/login_report/` — monthly reports
+- `/receive_solar_panel/` — inspection data receiver used by the application integration
 
-### Common Issues
+Most management, monitoring, record, and report pages require a signed-in user. Panel and user administration actions are restricted by role in the views.
 
-1. **Database errors**: Ensure database migrations are up to date
-2. **Static files not loading**: Run `collectstatic` command
-3. **Email not sending**: Check SMTP configuration and app passwords
-4. **AI model errors**: Verify model files exist in the correct directory
+## Configuration Notes
 
-### Logs
-Check Django logs for detailed error information:
-```bash
-python manage.py runserver --verbosity 2
-```
+- The configured media root is the project `media/` directory. Ensure the server process can write to it.
+- Configure a valid SMTP account for password recovery and report email features. Email settings are currently stored in `settings.py` and should be moved to environment variables before deployment.
+- The repository currently contains development-only Django security settings and machine-specific paths. Set a private `SECRET_KEY`, disable `DEBUG`, configure `ALLOWED_HOSTS` and CSRF trusted origins, and review the server binding before deployment.
+- Monthly report generation is implemented in `utils/auto_generate_report.py` as a script; it is not configured as a Django scheduled task.
+- The image detector uses the class labels returned by the YOLO model. Confirm the model labels and configured paths match your installation.
 
-## Contributing
+## Reports
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+The application can display and generate PDF files for solar panel and login monthly reports. The helper in `utils/auto_generate_report.py` aggregates the previous period, creates report records, renders PDFs, and emails them. Configure the email account and run it through an appropriate scheduler if automatic monthly delivery is required.
 
-## License
+## Security
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Do not commit real passwords, SMTP credentials, or production secret keys. The checked-in settings include sensitive-looking configuration values and permissive development settings; rotate any credentials that have been exposed and load secrets from environment variables. Review access controls, CSRF settings, upload validation, and deployment settings before exposing the application publicly.
 
-## Support
 
-For support, please contact the system administrator or create an issue in the repository.
 
----
-
-**Note**: This system is designed for educational and monitoring purposes. Always ensure compliance with local regulations when deploying surveillance systems.
